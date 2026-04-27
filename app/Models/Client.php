@@ -14,10 +14,22 @@ class Client extends Model
         'phone',
         'additional_phone',
         'address',
+        'visa_holder_name',
+        'passport_number',
+        'national_id',
+        'passport_image',
+        'visa_image',
+        'id_image',
     ];
 
+    
     public function orders()
     {
         return $this->hasMany(Order::class);
+    }
+
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class);
     }
 }

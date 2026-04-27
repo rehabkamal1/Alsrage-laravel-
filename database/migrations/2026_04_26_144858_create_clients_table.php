@@ -14,11 +14,19 @@ return new class extends Migration
         Schema::create('clients', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('category')->nullable(); // مكتب خدمات أو عميل فردي
+
+            $table->string('category')->nullable();
             $table->string('office_name')->nullable();
-            $table->string('phone');
+            $table->string('phone')->unique();
             $table->string('additional_phone')->nullable();
             $table->text('address')->nullable();
+
+            $table->string('passport_number')->nullable()->unique()->after('visa_holder_name');
+            $table->string('national_id')->nullable()->unique()->after('passport_number');
+            $table->string('passport_image')->nullable()->after('national_id');
+            $table->string('visa_image')->nullable()->after('passport_image');
+            $table->string('id_image')->nullable()->after('visa_image');
+
             $table->timestamps();
         });
     }

@@ -12,4 +12,12 @@ class Employee extends Model
         'position',
         'office_name'
     ];
+
+    /**
+     * العلاقات
+     */
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
 }

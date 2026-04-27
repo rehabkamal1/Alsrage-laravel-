@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreOrderRequest;
 use App\Http\Requests\UpdateOrderRequest;
 use App\Http\Resources\OrderResource;
+use App\Models\Client;
 use App\Models\Order;
 use Illuminate\Http\Request;
 
@@ -33,6 +34,14 @@ class OrderController extends Controller
      */
     public function store(StoreOrderRequest $request)
     {
+        if (!$request->client_id && $request->new_client_name && $request->new_client_phone) {
+            $client = Client::create([
+                'name' => $request->new_client_name,
+                'phone' => $request->new_client_phone,
+            ]);
+            $request->merge(['client_id' => $client->id]);
+        }
+
         $order = Order::create($request->validated());
 
         return (new OrderResource($order))

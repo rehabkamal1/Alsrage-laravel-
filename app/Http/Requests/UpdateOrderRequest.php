@@ -22,11 +22,25 @@ class UpdateOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'client_id' => ['sometimes', 'required', 'exists:clients,id'],
+            'client_id' => ['sometimes', 'exists:clients,id'],
             'saudi_office_id' => ['nullable', 'exists:saudi_offices,id'],
             'external_office_id' => ['nullable', 'exists:external_offices,id'],
-            'details' => ['nullable', 'string'],
-            'status' => ['sometimes', 'required', 'string', 'in:pending,processing,done,canceled'],
+            'employee_id' => ['nullable', 'exists:employees,id'],
+
+            'visa_number' => ['nullable', 'string', 'max:100'],
+            'musaned_contract_number' => ['nullable', 'string', 'unique:orders,musaned_contract_number,' . $this->route('order')],
+            'authentication_contract_number' => ['nullable', 'string', 'unique:orders,authentication_contract_number,' . $this->route('order')],
+            'external_agent_number' => ['nullable', 'string', 'max:100'],
+            'contract_date' => ['nullable', 'date'],
+            'passport_date' => ['nullable', 'date'],
+
+            'total_price' => ['nullable', 'numeric', 'min:0'],
+            'musaned_paid' => ['nullable', 'numeric', 'min:0'],
+
+            'visa_image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:5120'],
+            'contract_image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:5120'],
+
+            'status' => ['sometimes', 'string', 'in:pending,in_progress,completed,cancelled'],
         ];
     }
 }
