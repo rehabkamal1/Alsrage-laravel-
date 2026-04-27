@@ -5,16 +5,17 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 
-#[Fillable([
-    'name',
-    'destination',
-    'responsible_employee',
-    'mobile',
-    'phone',
-    'address',
-])]
 class SaudiOffice extends Model
 {
+    protected $fillable = [
+        'name',
+        'destination',
+        'responsible_employee',
+        'mobile',
+        'phone',
+        'address',
+    ];
+
     public function orders()
     {
         return $this->hasMany(Order::class);

@@ -5,13 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 
-#[Fillable([
-    'name',
-    'country',
-    'contacts',
-])]
 class ExternalOffice extends Model
 {
+    protected $fillable = [
+        'name',
+        'country',
+        'contacts',
+    ];
     protected function casts(): array
     {
         return [
