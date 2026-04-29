@@ -11,6 +11,7 @@ class ExternalOffice extends Model
         'name',
         'country',
         'contacts',
+        'notes',
     ];
     protected function casts(): array
     {

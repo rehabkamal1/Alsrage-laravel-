@@ -12,81 +12,64 @@ use Illuminate\Support\Facades\Storage;
 
 class ClientController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return ClientResource::collection(Client::latest()->get());
+        $query = Client::query()->with('employee');
+
+        if ($request->filled('search')) {
+            $search = $request->string('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%")
+                    ->orWhere('additional_phone', 'like', "%{$search}%")
+                    ->orWhere('city', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('employee_id')) {
+            $query->where('employee_id', $request->integer('employee_id'));
+        }
+
+        if ($request->filled('client_type')) {
+            $query->where('client_type', $request->string('client_type'));
+        }
+
+        $allowedSortBy = ['id', 'name', 'phone', 'client_type', 'created_at'];
+        $sortBy = in_array($request->input('sort_by'), $allowedSortBy, true)
+            ? $request->input('sort_by')
+            : 'created_at';
+        $sortDir = $request->input('sort_dir') === 'asc' ? 'asc' : 'desc';
+
+        $clients = $query
+            ->orderBy($sortBy, $sortDir)
+            ->paginate((int) $request->integer('per_page', 10))
+            ->withQueryString();
+
+        return ClientResource::collection($clients);
     }
 
     public function store(StoreClientRequest $request)
     {
         $data = $request->validated();
-
-        if ($request->hasFile('passport_image')) {
-            $data['passport_image'] = $request->file('passport_image')->store('clients/passports', 'public');
-        }
-
-        if ($request->hasFile('visa_image')) {
-            $data['visa_image'] = $request->file('visa_image')->store('clients/visas', 'public');
-        }
-
-        if ($request->hasFile('id_image')) {
-            $data['id_image'] = $request->file('id_image')->store('clients/id_cards', 'public');
-        }
-
         $client = Client::create($data);
-
-        return new ClientResource($client);
+        return new ClientResource($client->load('employee'));
     }
 
     public function show(Client $client)
     {
-        return new ClientResource($client);
+        return new ClientResource($client->load('employee'));
     }
 
     public function update(UpdateClientRequest $request, Client $client)
     {
         $data = $request->validated();
-
-        if ($request->hasFile('passport_image')) {
-            if ($client->passport_image) {
-                Storage::disk('public')->delete($client->passport_image);
-            }
-            $data['passport_image'] = $request->file('passport_image')->store('clients/passports', 'public');
-        }
-
-        if ($request->hasFile('visa_image')) {
-            if ($client->visa_image) {
-                Storage::disk('public')->delete($client->visa_image);
-            }
-            $data['visa_image'] = $request->file('visa_image')->store('clients/visas', 'public');
-        }
-
-        if ($request->hasFile('id_image')) {
-            if ($client->id_image) {
-                Storage::disk('public')->delete($client->id_image);
-            }
-            $data['id_image'] = $request->file('id_image')->store('clients/id_cards', 'public');
-        }
-
         $client->update($data);
-
-        return new ClientResource($client);
+        return new ClientResource($client->load('employee'));
     }
 
     public function destroy(Client $client)
     {
-        if ($client->passport_image) {
-            Storage::disk('public')->delete($client->passport_image);
-        }
-        if ($client->visa_image) {
-            Storage::disk('public')->delete($client->visa_image);
-        }
-        if ($client->id_image) {
-            Storage::disk('public')->delete($client->id_image);
-        }
-
         $client->delete();
-
         return response()->json(['message' => 'Client deleted successfully']);
     }
 
@@ -98,10 +81,11 @@ class ClientController extends Controller
 
         $query = $request->query('query');
 
-        $clients = Client::where('name', 'like', "%{$query}%")
+        $clients = Client::with('employee')
+            ->where('name', 'like', "%{$query}%")
             ->orWhere('phone', 'like', "%{$query}%")
             ->limit(10)
-            ->get(['id', 'name', 'phone']);
+            ->get();
 
         return response()->json([
             'success' => true,

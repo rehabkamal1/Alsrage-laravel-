@@ -19,10 +19,12 @@ class SaudiOfficeController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'destination' => 'nullable|string|max:255',
+            'city' => 'nullable|string|max:255',
             'responsible_employee' => 'nullable|string|max:255',
             'mobile' => 'nullable|string|max:20',
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string',
+            'notes' => 'nullable|string',
         ]);
 
         $office = SaudiOffice::create($validated);
@@ -35,10 +37,12 @@ class SaudiOfficeController extends Controller
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
             'destination' => 'nullable|string|max:255',
+            'city' => 'nullable|string|max:255',
             'responsible_employee' => 'nullable|string|max:255',
             'mobile' => 'nullable|string|max:20',
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string',
+            'notes' => 'nullable|string',
         ]);
 
         $saudiOffice->update($validated);

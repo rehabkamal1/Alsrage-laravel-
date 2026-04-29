@@ -9,18 +9,18 @@ class Client extends Model
 {
     protected $fillable = [
         'name',
-        'category',
-        'office_name',
+        'client_type',
+        'employee_id',
         'phone',
         'additional_phone',
+        'city',
         'address',
-        'visa_holder_name',
-        'passport_number',
-        'national_id',
-        'passport_image',
-        'visa_image',
-        'id_image',
     ];
+
+    public function employee()
+    {
+        return $this->belongsTo(Employee::class);
+    }
 
     
     public function orders()

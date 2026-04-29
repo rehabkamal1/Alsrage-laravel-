@@ -35,18 +35,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/settings/transfer-statuses', [SettingController::class, 'getTransferStatuses']);
     Route::get('/settings/payment-methods', [SettingController::class, 'getPaymentMethods']);
     Route::get('/settings/bank-names', [SettingController::class, 'getBankNames']);
+    Route::get('/settings/order-statuses', [SettingController::class, 'getOrderStatuses']);
 
     Route::post('/settings/priority-levels', [SettingController::class, 'updatePriorityLevels']);
     Route::post('/settings/passport-statuses', [SettingController::class, 'updatePassportStatuses']);
     Route::post('/settings/transfer-statuses', [SettingController::class, 'updateTransferStatuses']);
     Route::post('/settings/payment-methods', [SettingController::class, 'updatePaymentMethods']);
     Route::post('/settings/bank-names', [SettingController::class, 'updateBankNames']);
+    Route::post('/settings/order-statuses', [SettingController::class, 'updateOrderStatuses']);
 
     Route::delete('/settings/priority-levels/{id}', [SettingController::class, 'deletePriorityLevel']);
     Route::delete('/settings/passport-statuses/{id}', [SettingController::class, 'deletePassportStatus']);
     Route::delete('/settings/transfer-statuses/{id}', [SettingController::class, 'deleteTransferStatus']);
     Route::delete('/settings/payment-methods/{id}', [SettingController::class, 'deletePaymentMethod']);
     Route::delete('/settings/bank-names/{id}', [SettingController::class, 'deleteBankName']);
+    Route::delete('/settings/order-statuses/{id}', [SettingController::class, 'deleteOrderStatus']);
 
     Route::post('/order-tracking/{orderTracking}/attachments', [AttachmentController::class, 'store']);
     Route::delete('/attachments/{attachment}', [AttachmentController::class, 'destroy']);

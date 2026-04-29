@@ -66,6 +66,15 @@ class SettingController extends Controller
         return response()->json(['data' => $statuses]);
     }
 
+    public function getOrderStatuses()
+    {
+        $statuses = Setting::where('group', 'order_status')
+            ->orderBy('sort_order')
+            ->get(['id', 'key', 'label', 'color', 'sort_order', 'is_active']);
+
+        return response()->json(['data' => $statuses]);
+    }
+
     public function updatePriorityLevels(UpdatePriorityLevelsRequest $request)
     {
         $levels = $request->input('levels', []);
@@ -180,6 +189,25 @@ class SettingController extends Controller
         return response()->json(['message' => 'تم حفظ حالات التسويق بنجاح']);
     }
 
+    public function updateOrderStatuses(Request $request)
+    {
+        $statuses = $request->input('statuses', []);
+
+        foreach ($statuses as $status) {
+            Setting::updateOrCreate(
+                ['group' => 'order_status', 'key' => $status['key']],
+                [
+                    'label' => $status['label'],
+                    'color' => $status['color'] ?? '#6c757d',
+                    'sort_order' => $status['sort_order'] ?? 0,
+                    'is_active' => $status['is_active'] ?? true,
+                ]
+            );
+        }
+
+        return response()->json(['message' => 'تم حفظ حالات الطلبات بنجاح']);
+    }
+
     public function deletePriorityLevel(int $id)
     {
         $setting = Setting::where('group', 'priority_level')->find($id);
@@ -233,6 +261,16 @@ class SettingController extends Controller
     public function deleteMarketingStatus(int $id)
     {
         $setting = Setting::where('group', 'marketing_status')->find($id);
+        if (!$setting) {
+            return response()->json(['message' => 'العنصر غير موجود'], 404);
+        }
+        $setting->delete();
+        return response()->json(['message' => 'تم الحذف بنجاح']);
+    }
+
+    public function deleteOrderStatus(int $id)
+    {
+        $setting = Setting::where('group', 'order_status')->find($id);
         if (!$setting) {
             return response()->json(['message' => 'العنصر غير موجود'], 404);
         }
