@@ -82,8 +82,7 @@ class ClientController extends Controller
         $query = $request->query('query');
 
         $clients = Client::with('employee')
-            ->where('name', 'like', "%{$query}%")
-            ->orWhere('phone', 'like', "%{$query}%")
+            ->where('phone', 'like', "%{$query}%")
             ->limit(10)
             ->get();
 
@@ -98,11 +97,13 @@ class ClientController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'phone' => 'required|string|unique:clients,phone',
+            'client_type' => 'nullable|string|in:individual,office',
         ]);
 
         $client = Client::create([
             'name' => $request->name,
             'phone' => $request->phone,
+            'client_type' => $request->client_type ?? 'individual',
         ]);
 
         return response()->json([

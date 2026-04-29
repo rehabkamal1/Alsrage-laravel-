@@ -21,7 +21,6 @@ class UpdateOrderRequest extends FormRequest
 
             'visa_number' => ['nullable', 'string', 'max:100'],
             'id_number' => ['nullable', 'string', 'max:100'],
-            'sponsor_number' => ['nullable', 'string', 'max:100'],
             'passport_number' => ['nullable', 'string', 'max:100'],
             'musaned_contract_number' => ['nullable', 'string', 'unique:orders,musaned_contract_number,' . $this->route('order')],
             'contract_date' => ['nullable', 'date'],
@@ -29,13 +28,10 @@ class UpdateOrderRequest extends FormRequest
             'total_price' => ['nullable', 'numeric', 'min:0'],
             'musaned_paid' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],
-
-            'visa_image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:5120'],
-            'contract_image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:5120'],
             'attachment_titles' => ['nullable', 'array'],
             'attachment_titles.*' => ['nullable', 'string', 'max:255'],
             'attachment_files' => ['nullable', 'array'],
-            'attachment_files.*' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:5120'],
+            'attachment_files.*' => ['nullable', 'file', 'mimes:jpeg,png,jpg,gif,pdf', 'max:5120'],
 
             'status' => ['sometimes', 'string', 'max:100'],
         ];
