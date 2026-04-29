@@ -22,6 +22,7 @@ class ExternalOfficeController extends Controller
             'contacts' => 'nullable|array',
             'contacts.*.name' => 'nullable|string|max:255',
             'contacts.*.phone' => 'nullable|string|max:255',
+            'contacts.*.commission' => 'nullable|string|max:255',
             'notes' => 'nullable|string',
         ]);
 
@@ -38,6 +39,7 @@ class ExternalOfficeController extends Controller
             'contacts' => 'nullable|array',
             'contacts.*.name' => 'nullable|string|max:255',
             'contacts.*.phone' => 'nullable|string|max:255',
+            'contacts.*.commission' => 'nullable|string|max:255',
             'notes' => 'nullable|string',
         ]);
 

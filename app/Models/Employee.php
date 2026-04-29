@@ -13,7 +13,7 @@ class Employee extends Model
         'username',
         'password',
         'position',
-        'office_name',
+        'saudi_office_id',
         'permissions'
     ];
 
@@ -36,6 +36,11 @@ class Employee extends Model
     /**
      * العلاقات
      */
+    public function saudiOffice()
+    {
+        return $this->belongsTo(SaudiOffice::class);
+    }
+
     public function orders()
     {
         return $this->hasMany(Order::class);

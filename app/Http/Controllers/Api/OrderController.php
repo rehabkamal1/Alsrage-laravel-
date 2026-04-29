@@ -26,6 +26,7 @@ class OrderController extends Controller
                         ->orWhere('sponsor_number', 'like', "%{$search}%")
                         ->orWhere('passport_number', 'like', "%{$search}%")
                         ->orWhere('musaned_contract_number', 'like', "%{$search}%")
+                        ->orWhere('notes', 'like', "%{$search}%")
                         ->orWhereHas('client', function ($clientQuery) use ($search) {
                             $clientQuery
                                 ->where('name', 'like', "%{$search}%")
@@ -43,7 +44,7 @@ class OrderController extends Controller
             ->when($request->filled('from_date'), fn($query) => $query->whereDate('created_at', '>=', $request->date('from_date')))
             ->when($request->filled('to_date'), fn($query) => $query->whereDate('created_at', '<=', $request->date('to_date')))
             ->orderBy(
-                in_array($request->input('sort_by'), ['id', 'visa_holder_name', 'visa_number', 'id_number', 'musaned_contract_number', 'status', 'total_price', 'musaned_paid', 'created_at'], true)
+                in_array($request->input('sort_by'), ['id', 'visa_holder_name', 'visa_number', 'id_number', 'musaned_contract_number', 'status', 'total_price', 'musaned_paid', 'created_at', 'contract_date'], true)
                     ? $request->input('sort_by')
                     : 'id',
                 $request->input('sort_dir') === 'asc' ? 'asc' : 'desc'
@@ -60,6 +61,7 @@ class OrderController extends Controller
             $client = Client::create([
                 'name' => $request->new_client_name,
                 'phone' => $request->new_client_phone,
+                'client_type' => $request->new_client_type ?? 'individual',
             ]);
             $request->merge(['client_id' => $client->id]);
         }

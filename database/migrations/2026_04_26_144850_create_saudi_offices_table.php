@@ -19,6 +19,8 @@ return new class extends Migration
             $table->string('responsible_employee')->nullable();
             $table->string('mobile')->nullable();
             $table->string('phone')->nullable();
+            $table->decimal('total_authorization', 10, 2)->nullable();
+            $table->decimal('musaned_price', 10, 2)->nullable();
             $table->text('address')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();

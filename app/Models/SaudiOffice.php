@@ -16,7 +16,14 @@ class SaudiOffice extends Model
         'phone',
         'address',
         'notes',
+        'total_authorization',
+        'musaned_price',
     ];
+
+    public function employees()
+    {
+        return $this->hasMany(Employee::class);
+    }
 
     public function orders()
     {

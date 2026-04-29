@@ -15,8 +15,11 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('phone');
+            $table->string('username')->unique();
+            $table->string('password');
             $table->string('position')->nullable();
-            $table->string('office_name')->nullable(); // To which office they belong
+            $table->foreignId('saudi_office_id')->nullable()->constrained('saudi_offices')->onDelete('set null');
+            $table->json('permissions')->nullable();
             $table->timestamps();
         });
     }

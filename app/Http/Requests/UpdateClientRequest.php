@@ -14,12 +14,12 @@ class UpdateClientRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'sometimes|string|max:255',
+            'name' => 'nullable|string|max:255',
             'client_type' => 'sometimes|string|max:255',
-            'employee_id' => 'sometimes|exists:employees,id',
+            'employee_id' => 'nullable|exists:employees,id',
             'phone' => 'sometimes|string|max:20|unique:clients,phone,' . ($this->client->id ?? $this->client),
             'additional_phone' => 'nullable|string|max:20',
-            'city' => 'sometimes|string|max:255',
+            'city' => 'nullable|string|max:255',
             'address' => 'nullable|string',
         ];
     }

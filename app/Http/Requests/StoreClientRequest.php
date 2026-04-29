@@ -14,12 +14,12 @@ class StoreClientRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => 'required|string|max:255',
+            'name' => 'nullable|string|max:255',
             'client_type' => 'required|string|max:255',
-            'employee_id' => 'required|exists:employees,id',
+            'employee_id' => 'nullable|exists:employees,id',
             'phone' => 'required|string|max:20|unique:clients,phone',
             'additional_phone' => 'nullable|string|max:20',
-            'city' => 'required|string|max:255',
+            'city' => 'nullable|string|max:255',
             'address' => 'nullable|string',
         ];
     }
