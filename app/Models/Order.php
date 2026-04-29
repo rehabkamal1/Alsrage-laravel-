@@ -13,6 +13,9 @@ class Order extends Model
         'external_office_id',
         'employee_id',
         'visa_number',
+        'id_number',
+        'sponsor_number',
+        'passport_number',
         'musaned_contract_number',
         'authentication_contract_number',
         'external_agent_number',
@@ -24,6 +27,7 @@ class Order extends Model
         'visa_image',
         'contract_image',
         'status',
+        'notes',
     ];
 
     protected $casts = [
@@ -62,6 +66,11 @@ class Order extends Model
     public function transactions()
     {
         return $this->hasMany(Transaction::class);
+    }
+
+    public function attachments()
+    {
+        return $this->morphMany(Attachment::class, 'attachable');
     }
 
     protected static function booting()

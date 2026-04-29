@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('country')->nullable();
             $table->json('contacts')->nullable();
+            $table->text('notes')->nullable();
             $table->timestamps();
         });
     }

@@ -15,10 +15,12 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('destination')->nullable();
+            $table->string('city')->nullable();
             $table->string('responsible_employee')->nullable();
             $table->string('mobile')->nullable();
             $table->string('phone')->nullable();
             $table->text('address')->nullable();
+            $table->text('notes')->nullable();
             $table->timestamps();
         });
     }
