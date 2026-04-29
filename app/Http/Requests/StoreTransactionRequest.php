@@ -18,11 +18,12 @@ class StoreTransactionRequest extends FormRequest
             'amount' => 'required|numeric|min:0.01',
             'order_id' => 'required|exists:orders,id',
             'client_id' => 'nullable|exists:clients,id',
-            'payment_method' => 'nullable|in:cash,visa',
+            'payment_method' => 'nullable|string',
             'bank_name' => 'nullable|string|max:255',
             'transfer_date' => 'nullable|date',
-            'sender_name' => 'nullable|string|max:255',
-            'status' => 'sometimes|in:pending,accepted,rejected',
+            'transfer_number' => 'nullable|string|max:100',
+            'status' => 'nullable|string',
+            'priority_level' => 'nullable|string',
             'notes' => 'nullable|string',
         ];
     }

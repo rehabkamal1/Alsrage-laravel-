@@ -31,14 +31,40 @@ class TransactionController extends Controller
             $query->where('status', $request->status);
         }
 
-        if ($request->has('from_date')) {
-            $query->whereDate('created_at', '>=', $request->from_date);
-        }
-        if ($request->has('to_date')) {
-            $query->whereDate('created_at', '<=', $request->to_date);
+        if ($request->has('priority_level')) {
+            $query->where('priority_level', $request->priority_level);
         }
 
-        $transactions = $query->latest()->paginate((int) $request->integer('per_page', 15))->withQueryString();
+        if ($request->has('bank_name')) {
+            $query->where('bank_name', 'like', '%' . $request->bank_name . '%');
+        }
+
+        if ($request->has('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('transfer_number', 'like', "%{$search}%")
+                    ->orWhereHas('order', function ($oq) use ($search) {
+                        $oq->where('id', 'like', "%{$search}%")
+                            ->orWhere('visa_number', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('order.client', function ($cq) use ($search) {
+                        $cq->where('visa_holder_name', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        if ($request->has('from_date')) {
+            $query->whereDate('transfer_date', '>=', $request->from_date);
+        }
+        if ($request->has('to_date')) {
+            $query->whereDate('transfer_date', '<=', $request->to_date);
+        }
+
+        $sortField = $request->input('sort_field', 'id');
+        $sortDirection = $request->input('sort_direction', 'desc');
+        $query->orderBy($sortField, $sortDirection);
+
+        $transactions = $query->paginate((int) $request->integer('per_page', 15))->withQueryString();
 
         return OrderTransactionResource::collection($transactions);
     }
@@ -78,10 +104,10 @@ class TransactionController extends Controller
         $query = Transaction::query();
 
         if ($request->has('from_date')) {
-            $query->whereDate('created_at', '>=', $request->from_date);
+            $query->whereDate('transfer_date', '>=', $request->from_date);
         }
         if ($request->has('to_date')) {
-            $query->whereDate('created_at', '<=', $request->to_date);
+            $query->whereDate('transfer_date', '<=', $request->to_date);
         }
 
         $totalReceipts = $query->clone()->where('type', 'receipt')->sum('amount');

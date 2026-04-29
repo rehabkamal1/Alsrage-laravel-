@@ -14,29 +14,19 @@ class OrderTransactionResource extends JsonResource
             'order_id' => $this->order_id,
             'order_number' => $this->order?->id,
             'client_name' => $this->client?->name,
+            'visa_holder_name' => $this->order?->client?->visa_holder_name,
             'type' => $this->type,
             'type_text' => $this->type === 'receipt' ? 'مقبوضات' : 'مصروفات',
             'amount' => $this->amount,
             'payment_method' => $this->payment_method,
-            'payment_method_text' => $this->payment_method === 'cash' ? 'كاش' : 'فيزا',
             'bank_name' => $this->bank_name,
             'transfer_date' => $this->transfer_date,
-            'sender_name' => $this->sender_name,
+            'transfer_number' => $this->transfer_number,
             'status' => $this->status,
-            'status_text' => $this->getStatusText(),
+            'priority_level' => $this->priority_level,
             'notes' => $this->notes,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];
-    }
-
-    private function getStatusText(): string
-    {
-        return match ($this->status) {
-            'pending' => 'قيد الانتظار',
-            'accepted' => 'مقبولة',
-            'rejected' => 'مرفوضة',
-            default => 'غير محدد',
-        };
     }
 }

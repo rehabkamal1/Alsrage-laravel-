@@ -17,6 +17,7 @@ return new class extends Migration
             $table->foreignId('saudi_office_id')->nullable()->constrained('saudi_offices')->onDelete('set null');
             $table->foreignId('external_office_id')->nullable()->constrained('external_offices')->onDelete('set null');
 
+            $table->string('visa_holder_name')->nullable();
             $table->string('visa_number')->nullable();
             $table->string('musaned_contract_number')->nullable()->unique();
             $table->string('authentication_contract_number')->nullable()->unique();

@@ -2,29 +2,30 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 
-#[Fillable([
-    'client_id',
-    'saudi_office_id',
-    'external_office_id',
-    'employee_id',
-    'visa_number',
-    'musaned_contract_number',
-    'authentication_contract_number',
-    'external_agent_number',
-    'contract_date',
-    'passport_date',
-    'total_price',
-    'musaned_paid',
-    'price_difference',
-    'visa_image',
-    'contract_image',
-    'status',
-])]
 class Order extends Model
 {
+    protected $fillable = [
+        'client_id',
+        'visa_holder_name',
+        'saudi_office_id',
+        'external_office_id',
+        'employee_id',
+        'visa_number',
+        'musaned_contract_number',
+        'authentication_contract_number',
+        'external_agent_number',
+        'contract_date',
+        'passport_date',
+        'total_price',
+        'musaned_paid',
+        'price_difference',
+        'visa_image',
+        'contract_image',
+        'status',
+    ];
+
     protected $casts = [
         'contract_date' => 'date',
         'passport_date' => 'date',
@@ -33,9 +34,6 @@ class Order extends Model
         'price_difference' => 'decimal:2',
     ];
 
-    /**
-     * العلاقات
-     */
     public function client()
     {
         return $this->belongsTo(Client::class);
@@ -66,9 +64,6 @@ class Order extends Model
         return $this->hasMany(Transaction::class);
     }
 
-    /**
-     * حساب الفرق تلقائياً قبل الحفظ
-     */
     protected static function booting()
     {
         parent::booting();
