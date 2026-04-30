@@ -23,6 +23,9 @@ class StoreOrderRequest extends FormRequest
             'external_office_id' => ['nullable', 'exists:external_offices,id'],
 
             'visa_number' => ['nullable', 'string', 'max:100'],
+            'nationality' => ['nullable', 'string', 'max:255'],
+            'arrival_destination' => ['nullable', 'string', 'max:255'],
+            'profession' => ['nullable', 'string', 'max:255'],
             'id_number' => ['nullable', 'string', 'max:100'],
             'passport_number' => ['nullable', 'string', 'max:100'],
             'musaned_contract_number' => ['nullable', 'string', 'unique:orders,musaned_contract_number'],

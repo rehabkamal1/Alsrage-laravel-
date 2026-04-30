@@ -24,6 +24,7 @@ class ExternalOfficeController extends Controller
             'contacts.*.phone' => 'nullable|string|max:255',
             'contacts.*.commission' => 'nullable|string|max:255',
             'notes' => 'nullable|string',
+            'whatsapp_link' => 'nullable|string|url|max:255',
         ]);
 
         $office = ExternalOffice::create($validated);
@@ -41,6 +42,7 @@ class ExternalOfficeController extends Controller
             'contacts.*.phone' => 'nullable|string|max:255',
             'contacts.*.commission' => 'nullable|string|max:255',
             'notes' => 'nullable|string',
+            'whatsapp_link' => 'nullable|string|url|max:255',
         ]);
 
         $externalOffice->update($validated);

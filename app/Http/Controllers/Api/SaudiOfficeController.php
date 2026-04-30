@@ -47,6 +47,7 @@ class SaudiOfficeController extends Controller
             'notes' => 'nullable|string',
             'total_authorization' => 'nullable|numeric',
             'musaned_price' => 'nullable|numeric',
+            'whatsapp_link' => 'nullable|string|url|max:255',
         ]);
 
         $office = SaudiOffice::create($validated);
@@ -67,6 +68,7 @@ class SaudiOfficeController extends Controller
             'notes' => 'nullable|string',
             'total_authorization' => 'nullable|numeric',
             'musaned_price' => 'nullable|numeric',
+            'whatsapp_link' => 'nullable|string|url|max:255',
         ]);
 
         $saudiOffice->update($validated);

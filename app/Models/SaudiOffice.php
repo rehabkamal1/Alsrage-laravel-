@@ -18,6 +18,7 @@ class SaudiOffice extends Model
         'notes',
         'total_authorization',
         'musaned_price',
+        'whatsapp_link',
     ];
 
     public function employees()
