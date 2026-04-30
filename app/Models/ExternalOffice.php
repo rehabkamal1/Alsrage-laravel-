@@ -12,6 +12,7 @@ class ExternalOffice extends Model
         'country',
         'contacts',
         'notes',
+        'whatsapp_link',
     ];
     protected function casts(): array
     {
