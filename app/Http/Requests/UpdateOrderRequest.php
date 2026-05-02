@@ -14,9 +14,10 @@ class UpdateOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'client_id' => ['sometimes', 'exists:clients,id'],
+            'client_id' => ['nullable', 'exists:clients,id'],
             'visa_holder_name' => ['nullable', 'string', 'max:255'],
             'saudi_office_id' => ['nullable', 'exists:saudi_offices,id'],
+            'supplier_id' => ['nullable', 'exists:saudi_offices,id'],
             'external_office_id' => ['nullable', 'exists:external_offices,id'],
             'visa_number' => ['nullable', 'string', 'max:100'],
             'nationality' => ['nullable', 'string', 'max:255'],

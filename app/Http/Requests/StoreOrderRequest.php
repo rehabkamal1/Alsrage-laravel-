@@ -16,10 +16,11 @@ class StoreOrderRequest extends FormRequest
         return [
             'client_id' => ['nullable', 'exists:clients,id'],
             'visa_holder_name' => ['nullable', 'string', 'max:255'],
-            'new_client_name' => ['nullable', 'string', 'max:255', 'required_without:client_id'],
-            'new_client_phone' => ['nullable', 'string', 'unique:clients,phone', 'required_without:client_id'],
+            'new_client_name' => ['nullable', 'string', 'max:255'],
+            'new_client_phone' => ['nullable', 'string', 'unique:clients,phone'],
             'new_client_type' => ['nullable', 'string', 'in:individual,office'],
             'saudi_office_id' => ['nullable', 'exists:saudi_offices,id'],
+            'supplier_id' => ['nullable', 'exists:saudi_offices,id'],
             'external_office_id' => ['nullable', 'exists:external_offices,id'],
             'visa_number' => ['nullable', 'string', 'max:100'],
             'nationality' => ['nullable', 'string', 'max:255'],
