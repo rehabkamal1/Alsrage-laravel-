@@ -110,8 +110,8 @@ class TransactionController extends Controller
             $query->whereDate('transfer_date', '<=', $request->to_date);
         }
 
-        $totalReceipts = $query->clone()->where('type', 'receipt')->sum('amount');
-        $totalPayments = $query->clone()->where('type', 'payment')->sum('amount');
+        $totalReceipts = (float) $query->clone()->where('type', 'receipt')->sum('amount');
+        $totalPayments = (float) $query->clone()->where('type', 'payment')->sum('amount');
         $netProfit = $totalReceipts - $totalPayments;
 
         return response()->json([
