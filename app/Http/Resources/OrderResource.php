@@ -23,7 +23,6 @@ class OrderResource extends JsonResource
             'employee_id' => $this->employee_id,
             'employee_name' => $this->employee?->name,
             'employee' => $this->whenLoaded('employee'),
-
             'visa_number' => $this->visa_number,
             'id_number' => $this->id_number,
             'sponsor_number' => $this->sponsor_number,
@@ -33,14 +32,11 @@ class OrderResource extends JsonResource
             'external_agent_number' => $this->external_agent_number,
             'contract_date' => $this->contract_date,
             'passport_date' => $this->passport_date,
-
             'total_price' => $this->total_price,
             'musaned_paid' => $this->musaned_paid,
             'price_difference' => $this->price_difference,
-
             'visa_image' => $this->visa_image,
             'contract_image' => $this->contract_image,
-
             'status' => $this->status,
             'notes' => $this->notes,
             'tracking' => new OrderTrackingResource($this->tracking),

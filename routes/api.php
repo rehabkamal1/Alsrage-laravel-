@@ -29,6 +29,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('orders', OrderController::class)->except('show');
     Route::apiResource('order-tracking', OrderTrackingController::class);
     Route::apiResource('transactions', TransactionController::class);
+    Route::get('/finance/summary', [TransactionController::class, 'summary']);
 
     Route::get('/settings/priority-levels', [SettingController::class, 'getPriorityLevels']);
     Route::get('/settings/passport-statuses', [SettingController::class, 'getPassportStatuses']);
