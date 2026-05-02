@@ -78,7 +78,7 @@ class MarketingLeadController extends Controller
                 $data['phone'] = $source->phone ?? null;
             }
         } else {
-            $source = Client::where('category', 'Service Office')->find($request->source_id);
+            $source = Client::where('client_type', 'office')->find($request->source_id);
             if (!$source) {
                 return response()->json(['message' => 'العميل غير موجود أو ليس مكتب خدمات'], 404);
             }
@@ -92,7 +92,6 @@ class MarketingLeadController extends Controller
             ->response()
             ->setStatusCode(201);
     }
-
     public function show(MarketingLead $marketingLead)
     {
         return new MarketingLeadResource($marketingLead);
@@ -126,8 +125,8 @@ class MarketingLeadController extends Controller
 
     public function getServiceOffices()
     {
-        $clients = Client::where('category', 'Service Office')
-            ->select('id', 'name', 'office_name', 'phone')
+        $clients = Client::where('client_type', 'office')
+            ->select('id', 'name', 'phone')
             ->get();
         return response()->json(['data' => $clients]);
     }
