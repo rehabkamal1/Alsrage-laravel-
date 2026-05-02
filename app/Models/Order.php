@@ -10,6 +10,7 @@ class Order extends Model
         'client_id',
         'visa_holder_name',
         'saudi_office_id',
+        'supplier_id',
         'external_office_id',
         'nationality',
         'arrival_destination',
@@ -48,7 +49,12 @@ class Order extends Model
 
     public function saudiOffice()
     {
-        return $this->belongsTo(SaudiOffice::class);
+        return $this->belongsTo(SaudiOffice::class, 'saudi_office_id');
+    }
+
+    public function supplier()
+    {
+        return $this->belongsTo(SaudiOffice::class, 'supplier_id');
     }
 
     public function externalOffice()

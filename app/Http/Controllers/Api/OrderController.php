@@ -15,7 +15,7 @@ class OrderController extends Controller
     public function index(Request $request)
     {
         $orders = Order::query()
-            ->with(['client', 'saudiOffice', 'externalOffice', 'employee', 'tracking', 'transactions', 'attachments'])
+            ->with(['client', 'saudiOffice', 'supplier', 'externalOffice', 'employee', 'tracking', 'transactions', 'attachments'])
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = $request->string('search');
                 $query->where(function ($q) use ($search) {
