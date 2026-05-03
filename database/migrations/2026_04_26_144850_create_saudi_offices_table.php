@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('saudi_offices', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->boolean('is_supplier')->default(false);
             $table->string('destination')->nullable();
             $table->string('city')->nullable();
             $table->string('responsible_employee')->nullable();

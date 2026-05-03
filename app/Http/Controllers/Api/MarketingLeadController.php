@@ -50,7 +50,7 @@ class MarketingLeadController extends Controller
         $sortDirection = $request->input('sort_direction', 'desc');
         $query->orderBy($sortField, $sortDirection);
 
-        $leads = $query->paginate((int) $request->integer('per_page', 15))->withQueryString();
+        $leads = $query->paginate((int) $request->input('per_page', 15))->withQueryString();
 
         return MarketingLeadResource::collection($leads);
     }
@@ -75,14 +75,14 @@ class MarketingLeadController extends Controller
             if ($source->contacts && is_array($source->contacts) && count($source->contacts) > 0) {
                 $data['phone'] = $source->contacts[0]['phone'] ?? null;
             } else {
-                $data['phone'] = $source->phone ?? null;
+                $data['phone'] = null;
             }
         } else {
             $source = Client::where('client_type', 'office')->find($request->source_id);
             if (!$source) {
                 return response()->json(['message' => 'العميل غير موجود أو ليس مكتب خدمات'], 404);
             }
-            $data['name'] = $source->office_name ?? $source->name;
+            $data['name'] = $source->name;
             $data['phone'] = $source->phone;
         }
 
@@ -120,7 +120,7 @@ class MarketingLeadController extends Controller
 
     public function getExternalOffices()
     {
-        $offices = ExternalOffice::select('id', 'name', 'phone', 'contacts')->get();
+        $offices = ExternalOffice::select('id', 'name', 'contacts')->get();
         return response()->json(['data' => $offices]);
     }
 
@@ -141,11 +141,11 @@ class MarketingLeadController extends Controller
 
         if ($statuses->isEmpty()) {
             $statuses = collect([
-                (object)['key' => 'new', 'label' => 'جديد', 'color' => '#17a2b8'],
-                (object)['key' => 'contacted', 'label' => 'تم التواصل', 'color' => '#ffc107'],
-                (object)['key' => 'interested', 'label' => 'مهتم', 'color' => '#28a745'],
-                (object)['key' => 'not_interested', 'label' => 'غير مهتم', 'color' => '#dc3545'],
-                (object)['key' => 'converted', 'label' => 'تم التحويل', 'color' => '#6c757d'],
+                ['key' => 'new', 'label' => 'جديد', 'color' => '#17a2b8'],
+                ['key' => 'contacted', 'label' => 'تم التواصل', 'color' => '#ffc107'],
+                ['key' => 'interested', 'label' => 'مهتم', 'color' => '#28a745'],
+                ['key' => 'not_interested', 'label' => 'غير مهتم', 'color' => '#dc3545'],
+                ['key' => 'converted', 'label' => 'تم التحويل', 'color' => '#6c757d'],
             ]);
         }
 
@@ -197,8 +197,10 @@ class MarketingLeadController extends Controller
         $office = ExternalOffice::create([
             'name' => $request->name,
             'country' => $request->country,
-            'phone' => $request->phone,
-            'contacts' => [],
+            'contacts' => [
+                ['name' => 'الرئيسي', 'phone' => $request->phone]
+            ],
+            'notes' => $request->notes ?? null,
         ]);
 
         return response()->json([
@@ -211,13 +213,11 @@ class MarketingLeadController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'office_name' => 'required|string|max:255',
             'phone' => 'required|string|max:20|unique:clients,phone',
         ]);
 
         $client = Client::create([
             'name' => $request->name,
-            'office_name' => $request->office_name,
             'phone' => $request->phone,
             'client_type' => 'office',
             'category' => 'Service Office',
