@@ -92,6 +92,7 @@ class MarketingLeadController extends Controller
             ->response()
             ->setStatusCode(201);
     }
+
     public function show(MarketingLead $marketingLead)
     {
         return new MarketingLeadResource($marketingLead);
@@ -126,7 +127,7 @@ class MarketingLeadController extends Controller
     public function getServiceOffices()
     {
         $clients = Client::where('client_type', 'office')
-            ->select('id', 'name', 'phone')
+            ->select('id', 'name', 'office_name', 'phone')
             ->get();
         return response()->json(['data' => $clients]);
     }
@@ -218,6 +219,7 @@ class MarketingLeadController extends Controller
             'name' => $request->name,
             'office_name' => $request->office_name,
             'phone' => $request->phone,
+            'client_type' => 'office',
             'category' => 'Service Office',
             'additional_phone' => $request->additional_phone ?? null,
             'address' => $request->address ?? null,

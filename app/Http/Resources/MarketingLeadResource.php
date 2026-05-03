@@ -4,16 +4,32 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use App\Models\SaudiOffice;
+use App\Models\ExternalOffice;
+use App\Models\Client;
 
 class MarketingLeadResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $sourceName = null;
+
+        if ($this->source_type === 'saudi_office') {
+            $office = SaudiOffice::find($this->source_id);
+            $sourceName = $office?->name;
+        } elseif ($this->source_type === 'external_office') {
+            $office = ExternalOffice::find($this->source_id);
+            $sourceName = $office?->name;
+        } elseif ($this->source_type === 'client') {
+            $client = Client::find($this->source_id);
+            $sourceName = $client?->office_name ?? $client?->name;
+        }
+
         return [
             'id' => $this->id,
             'source_id' => $this->source_id,
             'source_type' => $this->source_type,
-            'source_name' => $this->source_name,
+            'source_name' => $sourceName,
             'source_phone' => $this->source_phone,
             'name' => $this->name,
             'phone' => $this->phone,

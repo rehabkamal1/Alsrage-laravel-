@@ -10,8 +10,10 @@ class OrderTracking extends Model
 
     protected $fillable = [
         'order_id',
+        'external_office_id',
         'is_authenticated',
         'authentication_date',
+        'certification_date',
         'authentication_number',
         'authorization_number',
         'sponsor_number',
@@ -25,12 +27,18 @@ class OrderTracking extends Model
     protected $casts = [
         'is_authenticated' => 'boolean',
         'authentication_date' => 'date',
+        'certification_date' => 'date',
         'last_action_date' => 'date',
     ];
 
     public function order()
     {
         return $this->belongsTo(Order::class);
+    }
+
+    public function externalOffice()
+    {
+        return $this->belongsTo(ExternalOffice::class);
     }
 
     public function attachments()

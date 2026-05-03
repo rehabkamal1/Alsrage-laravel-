@@ -32,32 +32,53 @@ class MarketingLead extends Model
 
     public function getSourceNameAttribute()
     {
-        if ($this->source_type === 'App\\Models\\SaudiOffice') {
-            return $this->source?->name;
+        if ($this->source_type === 'saudi_office') {
+            $office = SaudiOffice::find($this->source_id);
+            return $office?->name;
         }
-        if ($this->source_type === 'App\\Models\\ExternalOffice') {
-            return $this->source?->name;
+        if ($this->source_type === 'external_office') {
+            $office = ExternalOffice::find($this->source_id);
+            return $office?->name;
         }
-        if ($this->source_type === 'App\\Models\\Client') {
-            return $this->source?->office_name ?? $this->source?->name;
+        if ($this->source_type === 'client') {
+            $client = Client::find($this->source_id);
+            return $client?->office_name ?? $client?->name;
         }
         return null;
     }
 
     public function getSourcePhoneAttribute()
     {
-        if ($this->source_type === 'App\\Models\\SaudiOffice') {
-            return $this->source?->mobile ?? $this->source?->phone;
+        if ($this->source_type === 'saudi_office') {
+            $office = SaudiOffice::find($this->source_id);
+            return $office?->mobile ?? $office?->phone;
         }
-        if ($this->source_type === 'App\\Models\\ExternalOffice') {
-            if ($this->source?->contacts && is_array($this->source->contacts) && count($this->source->contacts) > 0) {
-                return $this->source->contacts[0]['phone'] ?? null;
+        if ($this->source_type === 'external_office') {
+            $office = ExternalOffice::find($this->source_id);
+            if ($office?->contacts && is_array($office->contacts) && count($office->contacts) > 0) {
+                return $office->contacts[0]['phone'] ?? null;
             }
-            return $this->source?->phone;
+            return $office?->phone;
         }
-        if ($this->source_type === 'App\\Models\\Client') {
-            return $this->source?->phone;
+        if ($this->source_type === 'client') {
+            $client = Client::find($this->source_id);
+            return $client?->phone;
         }
         return null;
+    }
+
+    public function saudiOffice()
+    {
+        return $this->belongsTo(SaudiOffice::class, 'source_id')->where('source_type', 'saudi_office');
+    }
+
+    public function externalOffice()
+    {
+        return $this->belongsTo(ExternalOffice::class, 'source_id')->where('source_type', 'external_office');
+    }
+
+    public function serviceOffice()
+    {
+        return $this->belongsTo(Client::class, 'source_id')->where('source_type', 'client');
     }
 }
