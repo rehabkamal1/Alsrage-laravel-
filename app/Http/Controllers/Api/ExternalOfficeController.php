@@ -9,9 +9,19 @@ use Illuminate\Http\Request;
 
 class ExternalOfficeController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return ExternalOfficeResource::collection(ExternalOffice::latest()->get());
+        $query = ExternalOffice::query();
+
+        if ($request->filled('from_date')) {
+            $query->whereDate('created_at', '>=', $request->date('from_date'));
+        }
+
+        if ($request->filled('to_date')) {
+            $query->whereDate('created_at', '<=', $request->date('to_date'));
+        }
+
+        return ExternalOfficeResource::collection($query->latest()->get());
     }
 
     public function store(Request $request)

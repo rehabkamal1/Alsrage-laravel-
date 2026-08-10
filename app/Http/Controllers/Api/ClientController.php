@@ -34,6 +34,14 @@ class ClientController extends Controller
             $query->where('client_type', $request->string('client_type'));
         }
 
+        if ($request->filled('from_date')) {
+            $query->whereDate('created_at', '>=', $request->date('from_date'));
+        }
+
+        if ($request->filled('to_date')) {
+            $query->whereDate('created_at', '<=', $request->date('to_date'));
+        }
+
         $allowedSortBy = ['id', 'name', 'phone', 'client_type', 'created_at'];
         $sortBy = in_array($request->input('sort_by'), $allowedSortBy, true)
             ? $request->input('sort_by')
