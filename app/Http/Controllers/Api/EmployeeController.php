@@ -26,6 +26,14 @@ class EmployeeController extends Controller
             $query->where('position', $request->string('position'));
         }
 
+        if ($request->filled('from_date')) {
+            $query->whereDate('created_at', '>=', $request->date('from_date'));
+        }
+
+        if ($request->filled('to_date')) {
+            $query->whereDate('created_at', '<=', $request->date('to_date'));
+        }
+
         $allowedSortBy = ['id', 'name', 'username', 'phone', 'position', 'created_at'];
         $sortBy = in_array($request->input('sort_by'), $allowedSortBy, true)
             ? $request->input('sort_by')

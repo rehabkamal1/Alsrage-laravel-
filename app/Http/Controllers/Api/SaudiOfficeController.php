@@ -27,7 +27,9 @@ class SaudiOfficeController extends Controller
         $query->when($request->name, fn($q) => $q->where('name', 'like', "%{$request->name}%"))
               ->when($request->destination, fn($q) => $q->where('destination', 'like', "%{$request->destination}%"))
               ->when($request->city, fn($q) => $q->where('city', 'like', "%{$request->city}%"))
-              ->when($request->responsible_employee, fn($q) => $q->where('responsible_employee', 'like', "%{$request->responsible_employee}%"));
+              ->when($request->responsible_employee, fn($q) => $q->where('responsible_employee', 'like', "%{$request->responsible_employee}%"))
+              ->when($request->filled('from_date'), fn($q) => $q->whereDate('created_at', '>=', $request->date('from_date')))
+              ->when($request->filled('to_date'), fn($q) => $q->whereDate('created_at', '<=', $request->date('to_date')));
 
         $perPage = $request->integer('per_page', 10);
         
