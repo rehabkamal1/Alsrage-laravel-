@@ -16,10 +16,11 @@ class UpdateOrderRequest extends FormRequest
         return [
             'client_id' => ['nullable', 'exists:clients,id'],
             'visa_holder_name' => ['nullable', 'string', 'max:255'],
+            'visa_holder_phone' => ['nullable', 'string', 'max:255'],
             'saudi_office_id' => ['nullable', 'exists:saudi_offices,id'],
-            'supplier_id' => ['nullable', 'exists:saudi_offices,id'],
             'external_office_id' => ['nullable', 'exists:external_offices,id'],
             'visa_number' => ['nullable', 'string', 'max:100'],
+            'service_type' => ['nullable', 'string', 'max:255'],
             'nationality' => ['nullable', 'string', 'max:255'],
             'arrival_destination' => ['nullable', 'string', 'max:255'],
             'profession' => ['nullable', 'string', 'max:255'],

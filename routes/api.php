@@ -14,7 +14,7 @@ use App\Http\Controllers\Api\MarketingLeadController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])->name('login');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -37,6 +37,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/settings/payment-methods', [SettingController::class, 'getPaymentMethods']);
     Route::get('/settings/bank-names', [SettingController::class, 'getBankNames']);
     Route::get('/settings/order-statuses', [SettingController::class, 'getOrderStatuses']);
+    Route::get('/settings/service-types', [SettingController::class, 'getServiceTypes']);
+    Route::get('/settings/authentication-statuses', [SettingController::class, 'getAuthenticationStatuses']);
+    Route::get('/settings/authorization-statuses', [SettingController::class, 'getAuthorizationStatuses']);
 
     Route::post('/settings/priority-levels', [SettingController::class, 'updatePriorityLevels']);
     Route::post('/settings/passport-statuses', [SettingController::class, 'updatePassportStatuses']);
@@ -44,6 +47,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/settings/payment-methods', [SettingController::class, 'updatePaymentMethods']);
     Route::post('/settings/bank-names', [SettingController::class, 'updateBankNames']);
     Route::post('/settings/order-statuses', [SettingController::class, 'updateOrderStatuses']);
+    Route::post('/settings/service-types', [SettingController::class, 'updateServiceTypes']);
+    Route::post('/settings/authentication-statuses', [SettingController::class, 'updateAuthenticationStatuses']);
+    Route::post('/settings/authorization-statuses', [SettingController::class, 'updateAuthorizationStatuses']);
 
     Route::delete('/settings/priority-levels/{id}', [SettingController::class, 'deletePriorityLevel']);
     Route::delete('/settings/passport-statuses/{id}', [SettingController::class, 'deletePassportStatus']);
@@ -51,6 +57,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/settings/payment-methods/{id}', [SettingController::class, 'deletePaymentMethod']);
     Route::delete('/settings/bank-names/{id}', [SettingController::class, 'deleteBankName']);
     Route::delete('/settings/order-statuses/{id}', [SettingController::class, 'deleteOrderStatus']);
+    Route::delete('/settings/service-types/{id}', [SettingController::class, 'deleteServiceType']);
+    Route::delete('/settings/authentication-statuses/{id}', [SettingController::class, 'deleteAuthenticationStatus']);
+    Route::delete('/settings/authorization-statuses/{id}', [SettingController::class, 'deleteAuthorizationStatus']);
 
     Route::post('/order-tracking/{orderTracking}/attachments', [AttachmentController::class, 'store']);
     Route::delete('/attachments/{attachment}', [AttachmentController::class, 'destroy']);

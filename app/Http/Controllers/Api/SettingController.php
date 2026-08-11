@@ -66,9 +66,36 @@ class SettingController extends Controller
         return response()->json(['data' => $statuses]);
     }
 
+    public function getServiceTypes()
+    {
+        $types = Setting::where('group', 'service_type')
+            ->orderBy('sort_order')
+            ->get(['id', 'key', 'label', 'color', 'sort_order', 'is_active']);
+
+        return response()->json(['data' => $types]);
+    }
+
     public function getOrderStatuses()
     {
         $statuses = Setting::where('group', 'order_status')
+            ->orderBy('sort_order')
+            ->get(['id', 'key', 'label', 'color', 'sort_order', 'is_active']);
+
+        return response()->json(['data' => $statuses]);
+    }
+
+    public function getAuthenticationStatuses()
+    {
+        $statuses = Setting::where('group', 'authentication_status')
+            ->orderBy('sort_order')
+            ->get(['id', 'key', 'label', 'color', 'sort_order', 'is_active']);
+
+        return response()->json(['data' => $statuses]);
+    }
+
+    public function getAuthorizationStatuses()
+    {
+        $statuses = Setting::where('group', 'authorization_status')
             ->orderBy('sort_order')
             ->get(['id', 'key', 'label', 'color', 'sort_order', 'is_active']);
 
@@ -268,9 +295,96 @@ class SettingController extends Controller
         return response()->json(['message' => 'تم الحذف بنجاح']);
     }
 
+    public function updateServiceTypes(Request $request)
+    {
+        $types = $request->input('types', $request->input('statuses', []));
+
+        foreach ($types as $type) {
+            Setting::updateOrCreate(
+                ['group' => 'service_type', 'key' => $type['key'] ?? ''],
+                [
+                    'label' => $type['label'] ?? '',
+                    'color' => $type['color'] ?? '#6c757d',
+                    'sort_order' => $type['sort_order'] ?? 0,
+                    'is_active' => $type['is_active'] ?? true,
+                ]
+            );
+        }
+
+        return response()->json(['message' => 'تم حفظ أنواع الخدمات بنجاح']);
+    }
+
+    public function updateAuthenticationStatuses(Request $request)
+    {
+        $statuses = $request->input('statuses', []);
+
+        foreach ($statuses as $status) {
+            Setting::updateOrCreate(
+                ['group' => 'authentication_status', 'key' => $status['key'] ?? ''],
+                [
+                    'label' => $status['label'] ?? '',
+                    'color' => $status['color'] ?? '#6c757d',
+                    'sort_order' => $status['sort_order'] ?? 0,
+                    'is_active' => $status['is_active'] ?? true,
+                ]
+            );
+        }
+
+        return response()->json(['message' => 'تم حفظ حالات التوثيق بنجاح']);
+    }
+
+    public function updateAuthorizationStatuses(Request $request)
+    {
+        $statuses = $request->input('statuses', []);
+
+        foreach ($statuses as $status) {
+            Setting::updateOrCreate(
+                ['group' => 'authorization_status', 'key' => $status['key'] ?? ''],
+                [
+                    'label' => $status['label'] ?? '',
+                    'color' => $status['color'] ?? '#6c757d',
+                    'sort_order' => $status['sort_order'] ?? 0,
+                    'is_active' => $status['is_active'] ?? true,
+                ]
+            );
+        }
+
+        return response()->json(['message' => 'تم حفظ حالات التفويض بنجاح']);
+    }
+
     public function deleteOrderStatus(int $id)
     {
         $setting = Setting::where('group', 'order_status')->find($id);
+        if (!$setting) {
+            return response()->json(['message' => 'العنصر غير موجود'], 404);
+        }
+        $setting->delete();
+        return response()->json(['message' => 'تم الحذف بنجاح']);
+    }
+
+    public function deleteServiceType(int $id)
+    {
+        $setting = Setting::where('group', 'service_type')->find($id);
+        if (!$setting) {
+            return response()->json(['message' => 'العنصر غير موجود'], 404);
+        }
+        $setting->delete();
+        return response()->json(['message' => 'تم الحذف بنجاح']);
+    }
+
+    public function deleteAuthenticationStatus(int $id)
+    {
+        $setting = Setting::where('group', 'authentication_status')->find($id);
+        if (!$setting) {
+            return response()->json(['message' => 'العنصر غير موجود'], 404);
+        }
+        $setting->delete();
+        return response()->json(['message' => 'تم الحذف بنجاح']);
+    }
+
+    public function deleteAuthorizationStatus(int $id)
+    {
+        $setting = Setting::where('group', 'authorization_status')->find($id);
         if (!$setting) {
             return response()->json(['message' => 'العنصر غير موجود'], 404);
         }

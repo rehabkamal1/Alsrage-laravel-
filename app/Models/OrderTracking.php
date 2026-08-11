@@ -17,11 +17,14 @@ class OrderTracking extends Model
         'authentication_number',
         'authorization_number',
         'sponsor_number',
+        'delegate_phone',
         'last_action_date',
         'notes',
         'priority_level',
         'passport_status',
         'transfer_status',
+        'authentication_status',
+        'authorization_status',
     ];
 
     protected $casts = [

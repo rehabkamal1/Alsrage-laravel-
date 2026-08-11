@@ -19,6 +19,7 @@ class OrderTrackingResource extends JsonResource
             'id_number' => $this->order?->id_number ?? $this->order?->client?->id_number,
             'passport_number' => $this->order?->passport_number ?? $this->order?->client?->passport_number,
             'sponsor_number' => $this->sponsor_number,
+            'delegate_phone' => $this->delegate_phone ?? $this->order?->client?->phone ?? $this->sponsor_number,
             'authorization_number' => $this->authorization_number,
             'is_authenticated' => $this->is_authenticated,
             'authentication_date' => $this->authentication_date,
@@ -29,12 +30,14 @@ class OrderTrackingResource extends JsonResource
             'priority_level' => $this->priority_level,
             'passport_status' => $this->passport_status,
             'transfer_status' => $this->transfer_status,
+            'authentication_status' => $this->authentication_status,
+            'authorization_status' => $this->authorization_status,
             'attachments' => AttachmentResource::collection($this->attachments),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
-            'external_office_id' => $this->external_office_id,
-            'external_office_name' => $this->externalOffice?->name,
-            'external_office_country' => $this->externalOffice?->country,
+            'external_office_id' => $this->external_office_id ?? $this->order?->external_office_id,
+            'external_office_name' => $this->externalOffice?->name ?? $this->order?->externalOffice?->name,
+            'external_office_country' => $this->externalOffice?->country ?? $this->order?->externalOffice?->country,
         ];
     }
 }

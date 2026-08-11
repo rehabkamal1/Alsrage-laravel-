@@ -21,11 +21,14 @@ class UpdateOrderTrackingRequest extends FormRequest
             'authentication_number' => ['nullable', 'string', 'max:100'],
             'authorization_number' => ['nullable', 'string', 'max:100'],
             'sponsor_number' => ['nullable', 'string', 'max:100'],
+            'delegate_phone' => ['nullable', 'string', 'max:100'],
             'last_action_date' => ['nullable', 'date'],
             'notes' => ['nullable', 'string'],
             'priority_level' => ['nullable', 'string'],
             'passport_status' => ['nullable', 'string'],
             'transfer_status' => ['nullable', 'string'],
+            'authentication_status' => ['nullable', 'string'],
+            'authorization_status' => ['nullable', 'string'],
         ];
     }
 }

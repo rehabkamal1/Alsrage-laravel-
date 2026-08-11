@@ -31,8 +31,12 @@ class SaudiOfficeController extends Controller
               ->when($request->filled('from_date'), fn($q) => $q->whereDate('created_at', '>=', $request->date('from_date')))
               ->when($request->filled('to_date'), fn($q) => $q->whereDate('created_at', '<=', $request->date('to_date')));
 
-        $perPage = $request->integer('per_page', 10);
-        
+        if ($request->boolean('all')) {
+            return SaudiOfficeResource::collection($query->latest()->get());
+        }
+
+        $perPage = $request->integer('per_page', 500);
+
         return SaudiOfficeResource::collection($query->latest()->paginate($perPage));
     }
 

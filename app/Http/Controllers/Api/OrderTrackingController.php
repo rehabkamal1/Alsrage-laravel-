@@ -66,6 +66,10 @@ class OrderTrackingController extends Controller
 
         $tracking = OrderTracking::create($request->validated());
 
+        if ($tracking->is_authenticated) {
+            $tracking->order()->update(['status' => 'completed']);
+        }
+
         return (new OrderTrackingResource($tracking))
             ->response()
             ->setStatusCode(201);
@@ -79,6 +83,10 @@ class OrderTrackingController extends Controller
     public function update(UpdateOrderTrackingRequest $request, OrderTracking $orderTracking)
     {
         $orderTracking->update($request->validated());
+
+        if ($orderTracking->is_authenticated) {
+            $orderTracking->order()->update(['status' => 'completed']);
+        }
 
         return new OrderTrackingResource($orderTracking);
     }
