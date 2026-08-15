@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdatePriorityLevelsRequest;
 use App\Http\Requests\UpdatePassportStatusesRequest;
 use App\Http\Requests\UpdateTransferStatusesRequest;
-use App\Http\Requests\UpdateMarketingStatusesRequest;
 use App\Models\Setting;
 use Illuminate\Http\Request;
 
@@ -55,15 +54,6 @@ class SettingController extends Controller
             ->get(['id', 'key', 'label', 'color', 'sort_order', 'is_active']);
 
         return response()->json(['data' => $banks]);
-    }
-
-    public function getMarketingStatuses()
-    {
-        $statuses = Setting::where('group', 'marketing_status')
-            ->orderBy('sort_order')
-            ->get(['id', 'key', 'label', 'color', 'sort_order', 'is_active']);
-
-        return response()->json(['data' => $statuses]);
     }
 
     public function getServiceTypes()
@@ -197,25 +187,6 @@ class SettingController extends Controller
         return response()->json(['message' => 'تم حفظ أسماء البنوك بنجاح']);
     }
 
-    public function updateMarketingStatuses(UpdateMarketingStatusesRequest $request)
-    {
-        $statuses = $request->input('statuses', []);
-
-        foreach ($statuses as $status) {
-            Setting::updateOrCreate(
-                ['group' => 'marketing_status', 'key' => $status['key']],
-                [
-                    'label' => $status['label'],
-                    'color' => $status['color'] ?? '#6c757d',
-                    'sort_order' => $status['sort_order'] ?? 0,
-                    'is_active' => $status['is_active'] ?? true,
-                ]
-            );
-        }
-
-        return response()->json(['message' => 'تم حفظ حالات التسويق بنجاح']);
-    }
-
     public function updateOrderStatuses(Request $request)
     {
         $statuses = $request->input('statuses', []);
@@ -278,16 +249,6 @@ class SettingController extends Controller
     public function deleteBankName(int $id)
     {
         $setting = Setting::where('group', 'bank_name')->find($id);
-        if (!$setting) {
-            return response()->json(['message' => 'العنصر غير موجود'], 404);
-        }
-        $setting->delete();
-        return response()->json(['message' => 'تم الحذف بنجاح']);
-    }
-
-    public function deleteMarketingStatus(int $id)
-    {
-        $setting = Setting::where('group', 'marketing_status')->find($id);
         if (!$setting) {
             return response()->json(['message' => 'العنصر غير موجود'], 404);
         }

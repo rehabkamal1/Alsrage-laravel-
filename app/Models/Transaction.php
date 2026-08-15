@@ -10,7 +10,9 @@ class Transaction extends Model
         'type',
         'amount',
         'order_id',
+        'order_ids',
         'client_id',
+        'employee_id',
         'payment_method',
         'bank_name',
         'transfer_date',
@@ -23,6 +25,7 @@ class Transaction extends Model
     protected $casts = [
         'amount' => 'decimal:2',
         'transfer_date' => 'date',
+        'order_ids' => 'array',
     ];
 
     public function order()
@@ -33,5 +36,10 @@ class Transaction extends Model
     public function client()
     {
         return $this->belongsTo(Client::class);
+    }
+
+    public function employee()
+    {
+        return $this->belongsTo(Employee::class);
     }
 }

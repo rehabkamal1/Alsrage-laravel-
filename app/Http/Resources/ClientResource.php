@@ -19,6 +19,8 @@ class ClientResource extends JsonResource
             'additional_phone' => $this->additional_phone,
             'city' => $this->city,
             'address' => $this->address,
+            'orders' => OrderResource::collection($this->whenLoaded('orders')),
+            'transactions' => OrderTransactionResource::collection($this->whenLoaded('transactions')),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

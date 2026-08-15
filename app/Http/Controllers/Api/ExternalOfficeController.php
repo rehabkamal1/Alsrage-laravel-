@@ -13,6 +13,14 @@ class ExternalOfficeController extends Controller
     {
         $query = ExternalOffice::query();
 
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('country', 'like', "%{$search}%");
+            });
+        }
+
         if ($request->filled('from_date')) {
             $query->whereDate('created_at', '>=', $request->date('from_date'));
         }
@@ -21,7 +29,13 @@ class ExternalOfficeController extends Controller
             $query->whereDate('created_at', '<=', $request->date('to_date'));
         }
 
-        return ExternalOfficeResource::collection($query->latest()->get());
+        if ($request->boolean('all')) {
+            return ExternalOfficeResource::collection($query->latest()->get());
+        }
+
+        $perPage = $request->integer('per_page', 500);
+
+        return ExternalOfficeResource::collection($query->latest()->paginate($perPage));
     }
 
     public function store(Request $request)
@@ -33,6 +47,7 @@ class ExternalOfficeController extends Controller
             'contacts.*.name' => 'nullable|string|max:255',
             'contacts.*.phone' => 'nullable|string|max:255',
             'contacts.*.commission' => 'nullable|string|max:255',
+            'phone' => 'required|string|max:20',
             'notes' => 'nullable|string',
             'whatsapp_link' => 'nullable|string|url|max:255',
         ]);
@@ -51,6 +66,7 @@ class ExternalOfficeController extends Controller
             'contacts.*.name' => 'nullable|string|max:255',
             'contacts.*.phone' => 'nullable|string|max:255',
             'contacts.*.commission' => 'nullable|string|max:255',
+            'phone' => 'sometimes|required|string|max:20',
             'notes' => 'nullable|string',
             'whatsapp_link' => 'nullable|string|url|max:255',
         ]);

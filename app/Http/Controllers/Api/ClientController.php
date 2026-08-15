@@ -14,7 +14,7 @@ class ClientController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Client::query()->with('employee');
+        $query = Client::query()->with(['employee', 'orders', 'orders.tracking', 'orders.transactions', 'transactions']);
 
         if ($request->filled('search')) {
             $search = $request->string('search');
@@ -65,7 +65,7 @@ class ClientController extends Controller
 
     public function show(Client $client)
     {
-        return new ClientResource($client->load('employee'));
+        return new ClientResource($client->load(['employee', 'orders']));
     }
 
     public function update(UpdateClientRequest $request, Client $client)

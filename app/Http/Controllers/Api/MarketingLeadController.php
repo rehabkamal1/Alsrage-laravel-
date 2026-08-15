@@ -23,14 +23,6 @@ class MarketingLeadController extends Controller
             $query->where('type', $request->type);
         }
 
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->filled('priority_level')) {
-            $query->where('priority_level', $request->priority_level);
-        }
-
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -132,35 +124,6 @@ class MarketingLeadController extends Controller
         return response()->json(['data' => $clients]);
     }
 
-    public function getStatuses()
-    {
-        $statuses = Setting::where('group', 'marketing_status')
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->get(['key', 'label', 'color']);
-
-        if ($statuses->isEmpty()) {
-            $statuses = collect([
-                ['key' => 'new', 'label' => 'جديد', 'color' => '#17a2b8'],
-                ['key' => 'contacted', 'label' => 'تم التواصل', 'color' => '#ffc107'],
-                ['key' => 'interested', 'label' => 'مهتم', 'color' => '#28a745'],
-                ['key' => 'not_interested', 'label' => 'غير مهتم', 'color' => '#dc3545'],
-                ['key' => 'converted', 'label' => 'تم التحويل', 'color' => '#6c757d'],
-            ]);
-        }
-
-        return response()->json(['data' => $statuses]);
-    }
-
-    public function getPriorityLevels()
-    {
-        $levels = Setting::where('group', 'priority_level')
-            ->where('is_active', true)
-            ->orderBy('sort_order')
-            ->get(['key', 'label', 'color']);
-
-        return response()->json(['data' => $levels]);
-    }
 
     public function storeSaudiOffice(Request $request)
     {

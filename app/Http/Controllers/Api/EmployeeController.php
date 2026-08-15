@@ -76,7 +76,6 @@ class EmployeeController extends Controller
             'permissions' => 'nullable|array',
         ]);
 
-        // Only update password if provided
         if (!$validated['password']) {
             unset($validated['password']);
         }
@@ -91,4 +90,3 @@ class EmployeeController extends Controller
         return response()->json(['message' => 'Employee deleted successfully']);
     }
 }
-

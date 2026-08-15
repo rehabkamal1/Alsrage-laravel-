@@ -20,6 +20,7 @@ class SaudiOffice extends Model
         'total_authorization',
         'musaned_price',
         'whatsapp_link',
+        'whatsapp_send_to',
     ];
 
     public function employees()

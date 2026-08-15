@@ -15,6 +15,14 @@ class OrderTrackingController extends Controller
     {
         $query = OrderTracking::with(['order.client', 'order.saudiOffice', 'attachments']);
 
+        if (!$request->boolean('include_completed')) {
+            $query->where('is_authenticated', false);
+        }
+
+        if ($request->boolean('without_tracking')) {
+            $query->whereDoesntHave('order.tracking');
+        }
+
         if ($request->filled('order_id')) {
             $query->where('order_id', $request->order_id);
         }
@@ -29,6 +37,52 @@ class OrderTrackingController extends Controller
 
         if ($request->filled('transfer_status')) {
             $query->where('transfer_status', $request->transfer_status);
+        }
+
+        if ($request->filled('service_type')) {
+            $query->whereHas('order', fn($q) => $q->where('service_type', $request->service_type));
+        }
+
+        if ($request->filled('saudi_office_id')) {
+            $query->whereHas('order', fn($q) => $q->where('saudi_office_id', $request->saudi_office_id));
+        }
+
+        if ($request->filled('external_office_id')) {
+            $query->where(fn($q) => $q->where('external_office_id', $request->external_office_id)
+                ->orWhereHas('order', fn($oq) => $oq->where('external_office_id', $request->external_office_id)));
+        }
+
+        if ($request->filled('client_id')) {
+            $query->whereHas('order', fn($q) => $q->where('client_id', $request->client_id));
+        }
+
+        if ($request->filled('from_date')) {
+            $query->whereDate('created_at', '>=', $request->from_date);
+        }
+
+        if ($request->filled('to_date')) {
+            $query->whereDate('created_at', '<=', $request->to_date);
+        }
+
+        if ($request->filled('date_range')) {
+            $now = now();
+            switch ($request->date_range) {
+                case 'today':
+                    $query->whereDate('created_at', $now->toDateString());
+                    break;
+                case 'this_week':
+                    $query->whereBetween('created_at', [$now->startOfWeek(), $now->endOfWeek()]);
+                    break;
+                case 'this_month':
+                    $query->whereMonth('created_at', $now->month)
+                        ->whereYear('created_at', $now->year);
+                    break;
+                case 'this_year':
+                    $query->whereYear('created_at', $now->year);
+                    break;
+                default:
+                    break;
+            }
         }
 
         if ($request->filled('search')) {

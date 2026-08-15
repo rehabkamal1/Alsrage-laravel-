@@ -46,6 +46,7 @@ class OrderController extends Controller
             ->when($request->filled('external_office_id'), fn($query) => $query->where('external_office_id', $request->integer('external_office_id')))
             ->when($request->filled('from_date'), fn($query) => $query->whereDate('created_at', '>=', $request->date('from_date')))
             ->when($request->filled('to_date'), fn($query) => $query->whereDate('created_at', '<=', $request->date('to_date')))
+            ->when($request->boolean('without_tracking'), fn($query) => $query->whereDoesntHave('tracking'))
             ->orderBy(
                 in_array($request->input('sort_by'), ['id', 'visa_holder_name', 'visa_holder_phone', 'visa_number', 'service_type', 'id_number', 'musaned_contract_number', 'status', 'total_price', 'musaned_paid', 'created_at', 'contract_date'], true)
                     ? $request->input('sort_by')
@@ -121,5 +122,39 @@ class OrderController extends Controller
                 'size' => $file->getSize(),
             ]);
         }
+    }
+
+    public function getOrdersWithoutTracking(Request $request)
+    {
+        $query = Order::query()
+            ->with(['client', 'saudiOffice', 'externalOffice'])
+            ->whereDoesntHave('tracking');
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('id', 'like', "%{$search}%")
+                    ->orWhere('visa_holder_name', 'like', "%{$search}%")
+                    ->orWhere('visa_number', 'like', "%{$search}%")
+                    ->orWhereHas('client', function ($cq) use ($search) {
+                        $cq->where('name', 'like', "%{$search}%")
+                            ->orWhere('phone', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        if ($request->filled('saudi_office_id')) {
+            $query->where('saudi_office_id', $request->saudi_office_id);
+        }
+
+        if ($request->filled('service_type')) {
+            $query->where('service_type', $request->service_type);
+        }
+
+        $orders = $query->orderBy('id', 'desc')
+            ->paginate($request->integer('per_page', 15))
+            ->withQueryString();
+
+        return OrderResource::collection($orders);
     }
 }

@@ -17,8 +17,6 @@ class StoreMarketingLeadRequest extends FormRequest
             'source_id' => 'required|integer',
             'source_type' => 'required|string|in:saudi_office,external_office,client',
             'type' => 'required|string|in:saudi_office,external_office,service_office',
-            'status' => 'nullable|string',
-            'priority_level' => 'nullable|string',
             'notes' => 'nullable|string',
             'contact_date' => 'nullable|date',
             'next_followup_date' => 'nullable|date',

@@ -13,6 +13,7 @@ class ExternalOffice extends Model
         'contacts',
         'notes',
         'whatsapp_link',
+        'phone',
     ];
     protected function casts(): array
     {

@@ -11,10 +11,14 @@ return new class extends Migration
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
             $table->foreignId('client_id')->nullable()->constrained('clients')->onDelete('cascade');
+            $table->foreignId('employee_id')->nullable()->constrained('employees')->onDelete('set null');
+            $table->foreignId('supplier_id')->nullable()->constrained('saudi_offices')->onDelete('set null');
             $table->string('visa_holder_name')->nullable();
+            $table->string('visa_holder_phone')->nullable();
             $table->foreignId('saudi_office_id')->nullable()->constrained('saudi_offices')->onDelete('set null');
             $table->foreignId('external_office_id')->nullable()->constrained('external_offices')->onDelete('set null');
             $table->string('visa_number')->nullable();
+            $table->string('service_type')->nullable();
             $table->string('id_number')->nullable();
             $table->string('sponsor_number')->nullable();
             $table->string('passport_number')->nullable();

@@ -16,20 +16,21 @@ class SaudiOfficeController extends Controller
         // Generic search
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('destination', 'like', "%{$search}%")
-                  ->orWhere('responsible_employee', 'like', "%{$search}%");
+                    ->orWhere('destination', 'like', "%{$search}%")
+                    ->orWhere('responsible_employee', 'like', "%{$search}%")
+                    ->orWhere('city', 'like', "%{$search}%");
             });
         }
 
         // Column filters
         $query->when($request->name, fn($q) => $q->where('name', 'like', "%{$request->name}%"))
-              ->when($request->destination, fn($q) => $q->where('destination', 'like', "%{$request->destination}%"))
-              ->when($request->city, fn($q) => $q->where('city', 'like', "%{$request->city}%"))
-              ->when($request->responsible_employee, fn($q) => $q->where('responsible_employee', 'like', "%{$request->responsible_employee}%"))
-              ->when($request->filled('from_date'), fn($q) => $q->whereDate('created_at', '>=', $request->date('from_date')))
-              ->when($request->filled('to_date'), fn($q) => $q->whereDate('created_at', '<=', $request->date('to_date')));
+            ->when($request->destination, fn($q) => $q->where('destination', 'like', "%{$request->destination}%"))
+            ->when($request->city, fn($q) => $q->where('city', 'like', "%{$request->city}%"))
+            ->when($request->responsible_employee, fn($q) => $q->where('responsible_employee', 'like', "%{$request->responsible_employee}%"))
+            ->when($request->filled('from_date'), fn($q) => $q->whereDate('created_at', '>=', $request->date('from_date')))
+            ->when($request->filled('to_date'), fn($q) => $q->whereDate('created_at', '<=', $request->date('to_date')));
 
         if ($request->boolean('all')) {
             return SaudiOfficeResource::collection($query->latest()->get());

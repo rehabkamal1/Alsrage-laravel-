@@ -35,8 +35,6 @@ class MarketingLeadResource extends JsonResource
             'phone' => $this->phone,
             'type' => $this->type,
             'type_text' => $this->getTypeText(),
-            'status' => $this->status,
-            'priority_level' => $this->priority_level,
             'notes' => $this->notes,
             'contact_date' => $this->contact_date,
             'next_followup_date' => $this->next_followup_date,

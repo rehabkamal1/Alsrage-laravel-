@@ -8,6 +8,7 @@ class Order extends Model
 {
     protected $fillable = [
         'client_id',
+        'employee_id',
         'visa_holder_name',
         'visa_holder_phone',
         'saudi_office_id',
@@ -15,7 +16,6 @@ class Order extends Model
         'nationality',
         'arrival_destination',
         'profession',
-        'employee_id',
         'visa_number',
         'service_type',
         'id_number',

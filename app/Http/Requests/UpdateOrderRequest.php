@@ -15,6 +15,7 @@ class UpdateOrderRequest extends FormRequest
     {
         return [
             'client_id' => ['nullable', 'exists:clients,id'],
+            'employee_id' => ['nullable', 'exists:employees,id'],
             'visa_holder_name' => ['nullable', 'string', 'max:255'],
             'visa_holder_phone' => ['nullable', 'string', 'max:255'],
             'saudi_office_id' => ['nullable', 'exists:saudi_offices,id'],

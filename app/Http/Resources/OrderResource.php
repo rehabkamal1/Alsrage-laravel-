@@ -43,6 +43,7 @@ class OrderResource extends JsonResource
             'tracking' => new OrderTrackingResource($this->tracking),
             'transactions' => OrderTransactionResource::collection($this->transactions),
             'attachments' => AttachmentResource::collection($this->attachments),
+            'has_tracking' => $this->tracking()->exists(),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

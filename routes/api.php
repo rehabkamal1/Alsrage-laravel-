@@ -27,6 +27,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('external-offices', ExternalOfficeController::class);
     Route::apiResource('employees', EmployeeController::class);
     Route::apiResource('orders', OrderController::class)->except('show');
+    Route::get('/orders/without-tracking', [OrderController::class, 'getOrdersWithoutTracking']);
     Route::apiResource('order-tracking', OrderTrackingController::class);
     Route::apiResource('transactions', TransactionController::class);
     Route::get('/finance/summary', [TransactionController::class, 'summary']);
@@ -75,8 +76,4 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/marketing-leads/service-office', [MarketingLeadController::class, 'storeServiceOfficeNew']);
 
     Route::apiResource('marketing-leads', MarketingLeadController::class);
-
-    Route::get('/settings/marketing-statuses', [SettingController::class, 'getMarketingStatuses']);
-    Route::post('/settings/marketing-statuses', [SettingController::class, 'updateMarketingStatuses']);
-    Route::delete('/settings/marketing-statuses/{id}', [SettingController::class, 'deleteMarketingStatus']);
 });

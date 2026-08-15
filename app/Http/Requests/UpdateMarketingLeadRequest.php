@@ -14,8 +14,9 @@ class UpdateMarketingLeadRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => 'nullable|string',
-            'priority_level' => 'nullable|string',
+            'source_id' => 'nullable|integer',
+            'source_type' => 'nullable|string|in:saudi_office,external_office,client',
+            'type' => 'nullable|string|in:saudi_office,external_office,service_office',
             'notes' => 'nullable|string',
             'contact_date' => 'nullable|date',
             'next_followup_date' => 'nullable|date',

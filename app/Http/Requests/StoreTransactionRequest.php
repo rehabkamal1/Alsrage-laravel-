@@ -16,8 +16,11 @@ class StoreTransactionRequest extends FormRequest
         return [
             'type' => 'required|in:receipt,payment',
             'amount' => 'required|numeric|min:0.01',
-            'order_id' => 'required|exists:orders,id',
-            'client_id' => 'nullable|exists:clients,id',
+            'order_id' => 'nullable|exists:orders,id',
+            'order_ids' => 'nullable|array',
+            'order_ids.*' => 'exists:orders,id',
+            'client_id' => 'required|exists:clients,id',
+            'employee_id' => 'nullable|exists:employees,id',
             'payment_method' => 'nullable|string',
             'bank_name' => 'nullable|string|max:255',
             'transfer_date' => 'nullable|date',

@@ -12,8 +12,11 @@ class OrderTransactionResource extends JsonResource
         return [
             'id' => $this->id,
             'order_id' => $this->order_id,
+            'order_ids' => $this->order_ids ?? [$this->order_id],
             'order_number' => $this->order?->id,
             'client_name' => $this->client?->name,
+            'employee_id' => $this->employee_id,
+            'employee_name' => $this->employee?->name,
             'visa_holder_name' => $this->order?->client?->visa_holder_name,
             'type' => $this->type,
             'type_text' => $this->type === 'receipt' ? 'مقبوضات' : 'مصروفات',

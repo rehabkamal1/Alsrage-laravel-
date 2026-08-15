@@ -18,11 +18,15 @@ return new class extends Migration
             $table->string('authentication_number')->nullable();
             $table->string('authorization_number')->nullable();
             $table->string('sponsor_number')->nullable();
+            $table->string('passport_number')->nullable();
+            $table->string('delegate_phone')->nullable();
             $table->date('last_action_date')->nullable();
             $table->text('notes')->nullable();
             $table->string('priority_level')->nullable();
             $table->string('passport_status')->nullable();
             $table->string('transfer_status')->nullable();
+            $table->string('authentication_status')->nullable();
+            $table->string('authorization_status')->nullable();
             $table->timestamps();
         });
     }
