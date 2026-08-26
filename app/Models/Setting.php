@@ -12,12 +12,14 @@ class Setting extends Model
         'label',
         'color',
         'sort_order',
+        'target_days',
         'is_active'
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
         'sort_order' => 'integer',
+        'target_days' => 'integer',
     ];
 
     public static function getByGroup($group)

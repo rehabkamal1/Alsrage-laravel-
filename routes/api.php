@@ -80,4 +80,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Reports
     Route::get('/reports/order-follow-up', [ReportController::class, 'orderFollowUp']);
+    Route::get('/reports/completed-orders', [ReportController::class, 'completedOrders']);
+    Route::get('/reports/offices-performance', [ReportController::class, 'officesPerformance']);
+    Route::get('/reports/financial-collections', [ReportController::class, 'financialCollections']);
+    Route::get('/reports/employees-performance', [ReportController::class, 'employeesPerformance']);
 });
