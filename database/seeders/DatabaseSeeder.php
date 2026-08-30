@@ -33,6 +33,8 @@ class DatabaseSeeder extends Seeder
             ['key' => 'canceled', 'label' => 'ملغي', 'color' => '#dc3545', 'sort_order' => 4],
         ];
 
+        
+
         foreach ($orderStatuses as $status) {
             Setting::updateOrCreate(
                 ['group' => 'order_status', 'key' => $status['key']],
