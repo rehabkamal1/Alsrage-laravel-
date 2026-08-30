@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\AttachmentController;
 use App\Http\Controllers\Api\MarketingLeadController;
+use App\Http\Controllers\Api\ReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/register', [AuthController::class, 'register']);
@@ -76,4 +77,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/marketing-leads/service-office', [MarketingLeadController::class, 'storeServiceOfficeNew']);
 
     Route::apiResource('marketing-leads', MarketingLeadController::class);
+
+    // Reports
+    Route::get('/reports/order-follow-up', [ReportController::class, 'orderFollowUp']);
+    Route::get('/reports/completed-orders', [ReportController::class, 'completedOrders']);
+    Route::get('/reports/offices-performance', [ReportController::class, 'officesPerformance']);
+    Route::get('/reports/financial-collections', [ReportController::class, 'financialCollections']);
+    Route::get('/reports/employees-performance', [ReportController::class, 'employeesPerformance']);
 });

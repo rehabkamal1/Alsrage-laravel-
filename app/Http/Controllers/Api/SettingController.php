@@ -69,7 +69,7 @@ class SettingController extends Controller
     {
         $statuses = Setting::where('group', 'order_status')
             ->orderBy('sort_order')
-            ->get(['id', 'key', 'label', 'color', 'sort_order', 'is_active']);
+            ->get(['id', 'key', 'label', 'color', 'sort_order', 'target_days', 'is_active']);
 
         return response()->json(['data' => $statuses]);
     }
@@ -198,6 +198,7 @@ class SettingController extends Controller
                     'label' => $status['label'],
                     'color' => $status['color'] ?? '#6c757d',
                     'sort_order' => $status['sort_order'] ?? 0,
+                    'target_days' => isset($status['target_days']) ? (int) $status['target_days'] : 60,
                     'is_active' => $status['is_active'] ?? true,
                 ]
             );
