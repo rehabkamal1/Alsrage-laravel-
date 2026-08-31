@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -40,11 +41,17 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $validated = $request->validate([
-            'email' => ['required', 'string', 'email'],
+            'email' => ['required', 'string'],
             'password' => ['required', 'string'],
         ]);
 
+        // 1. Try to find the user in users table (by email)
         $user = User::where('email', $validated['email'])->first();
+
+        // 2. If not found, try to find in employees table (by username)
+        if (! $user) {
+            $user = Employee::where('username', $validated['email'])->first();
+        }
 
         if (! $user || ! Hash::check($validated['password'], $user->password)) {
             throw ValidationException::withMessages([
@@ -69,4 +76,10 @@ class AuthController extends Controller
             'message' => 'Logged out successfully.',
         ]);
     }
+
+    public function me(Request $request)
+    {
+        return response()->json($request->user());
+    }
 }
+

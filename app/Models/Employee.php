@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Support\Facades\Hash;
 
-class Employee extends Model
+class Employee extends Authenticatable
 {
+    use HasApiTokens;
+
     protected $fillable = [
         'name',
         'phone',
@@ -22,6 +25,16 @@ class Employee extends Model
     protected $casts = [
         'permissions' => 'array'
     ];
+
+    protected $appends = ['role'];
+
+    /**
+     * Get the dynamic role attribute for frontend
+     */
+    public function getRoleAttribute()
+    {
+        return 'employee';
+    }
 
     /**
      * Hash the password when setting it
@@ -46,3 +59,4 @@ class Employee extends Model
         return $this->hasMany(Order::class);
     }
 }
+
