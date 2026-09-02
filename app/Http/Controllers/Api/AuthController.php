@@ -45,17 +45,23 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        // 1. Try to find the user in users table (by email)
-        $user = User::where('email', $validated['email'])->first();
+        $input = trim($validated['email']);
 
-        // 2. If not found, try to find in employees table (by username)
+        // 1. Try to find the user in users table (by email or phone)
+        $user = User::where('email', $input)
+            ->orWhere('phone', $input)
+            ->first();
+
+        // 2. If not found, try to find in employees table (by username or phone)
         if (! $user) {
-            $user = Employee::where('username', $validated['email'])->first();
+            $user = Employee::where('username', $input)
+                ->orWhere('phone', $input)
+                ->first();
         }
 
         if (! $user || ! Hash::check($validated['password'], $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['Invalid credentials.'],
+                'email' => ['بيانات الدخول غير صحيحة.'],
             ]);
         }
 
