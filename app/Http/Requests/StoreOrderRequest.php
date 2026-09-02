@@ -15,8 +15,8 @@ class StoreOrderRequest extends FormRequest
     {
         return [
             'client_id' => ['nullable', 'exists:clients,id'],
-            'employee_id' => ['nullable', 'exists:employees,id'],
-            'visa_holder_name' => ['nullable', 'string', 'max:255'],
+            'employee_id' => ['required', 'exists:employees,id'],
+            'visa_holder_name' => ['required', 'string', 'max:255'],
             'visa_holder_phone' => ['nullable', 'string', 'max:255'],
             'new_client_name' => ['nullable', 'string', 'max:255'],
             'new_client_phone' => ['nullable', 'string', 'unique:clients,phone'],
@@ -25,8 +25,8 @@ class StoreOrderRequest extends FormRequest
             'external_office_id' => ['nullable', 'exists:external_offices,id'],
             'visa_number' => ['required', 'string', 'max:100'],
             'service_type' => ['nullable', 'string', 'max:255'],
-            'nationality' => ['nullable', 'string', 'max:255'],
-            'arrival_destination' => ['nullable', 'string', 'max:255'],
+            'nationality' => ['required', 'string', 'max:255'],
+            'arrival_destination' => ['required', 'string', 'max:255'],
             'profession' => ['nullable', 'string', 'max:255'],
             'id_number' => ['required', 'string', 'max:100'],
             'passport_number' => ['required', 'string', 'max:100'],
@@ -42,7 +42,21 @@ class StoreOrderRequest extends FormRequest
             'attachment_titles.*' => ['nullable', 'string', 'max:255'],
             'attachment_files' => ['nullable', 'array'],
             'attachment_files.*' => ['nullable', 'file', 'mimes:jpeg,png,jpg,gif,pdf', 'max:5120'],
-            'status' => ['sometimes', 'string', 'max:100'],
+            'status' => ['nullable', 'string', 'max:100'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'visa_holder_name.required' => 'حقل اسم صاحب التأشيرة مطلوب',
+            'employee_id.required' => 'حقل اسم الموظف مطلوب',
+            'saudi_office_id.required' => 'حقل المكتب السعودي مطلوب',
+            'visa_number.required' => 'حقل رقم التأشيرة مطلوب',
+            'nationality.required' => 'حقل الجنسية مطلوب',
+            'arrival_destination.required' => 'حقل جهة القدوم مطلوب',
+            'id_number.required' => 'حقل الرقم الهوية مطلوب',
+            'passport_number.required' => 'حقل رقم جواز السفر مطلوب',
         ];
     }
 }
