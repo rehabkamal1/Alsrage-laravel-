@@ -57,10 +57,10 @@ class ReportController extends Controller
 
         $processedOrders = $orders->map(function ($order) use ($statusSettingsMap, $now, &$totalLate, &$withoutFollowup, &$exceededSla, &$totalDelayDays) {
             $startDate = $order->contract_date ? Carbon::parse($order->contract_date) : $order->created_at;
-            $daysSinceStart = $startDate->diffInDays($now);
+            $daysSinceStart = (int) $startDate->diffInDays($now);
             
             // Get stage SLA target days from settings (default to 60 if not configured)
-            $stageTargetDays = $statusSettingsMap[$order->status] ?? 60;
+            $stageTargetDays = (int) ($statusSettingsMap[$order->status] ?? 60);
             $delayDays = max(0, $daysSinceStart - $stageTargetDays);
             
             $isLate = $delayDays > 0;
