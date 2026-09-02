@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateOrderRequest extends FormRequest
 {
@@ -13,6 +14,9 @@ class UpdateOrderRequest extends FormRequest
 
     public function rules(): array
     {
+        $order = $this->route('order');
+        $orderId = $order instanceof \App\Models\Order ? $order->id : $order;
+
         return [
             'client_id' => ['nullable', 'exists:clients,id'],
             'employee_id' => ['nullable', 'exists:employees,id'],
@@ -27,7 +31,11 @@ class UpdateOrderRequest extends FormRequest
             'profession' => ['nullable', 'string', 'max:255'],
             'id_number' => ['nullable', 'string', 'max:100'],
             'passport_number' => ['nullable', 'string', 'max:100'],
-            'musaned_contract_number' => ['nullable', 'string', 'unique:orders,musaned_contract_number,' . $this->route('order')],
+            'musaned_contract_number' => [
+                'nullable',
+                'string',
+                Rule::unique('orders', 'musaned_contract_number')->ignore($orderId),
+            ],
             'authentication_contract_number' => ['nullable', 'string', 'max:255'],
             'external_agent_number' => ['nullable', 'string', 'max:255'],
             'contract_date' => ['nullable', 'date'],
@@ -39,7 +47,7 @@ class UpdateOrderRequest extends FormRequest
             'attachment_titles.*' => ['nullable', 'string', 'max:255'],
             'attachment_files' => ['nullable', 'array'],
             'attachment_files.*' => ['nullable', 'file', 'mimes:jpeg,png,jpg,gif,pdf', 'max:5120'],
-            'status' => ['sometimes', 'string', 'max:100'],
+            'status' => ['sometimes', 'nullable', 'string', 'max:100'],
         ];
     }
 }

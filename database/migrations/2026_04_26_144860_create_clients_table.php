@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('clients', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->string('office_name')->nullable()->after('name');
             $table->string('client_type'); // فردي أو مكتب خدمات
             $table->foreignId('employee_id')->nullable()->constrained('employees')->nullOnDelete();
             $table->string('phone')->unique();

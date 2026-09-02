@@ -47,7 +47,7 @@ class ExternalOfficeController extends Controller
             'contacts.*.name' => 'nullable|string|max:255',
             'contacts.*.phone' => 'nullable|string|max:255',
             'contacts.*.commission' => 'nullable|string|max:255',
-            'phone' => 'required|string|max:20',
+            'phone' => 'nullable|string|max:20',
             'notes' => 'nullable|string',
             'whatsapp_link' => 'nullable|string|url|max:255',
         ]);
