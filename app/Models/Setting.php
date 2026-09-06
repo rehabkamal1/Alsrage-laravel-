@@ -40,4 +40,18 @@ class Setting extends Model
             ];
         });
     }
+
+    public static function getAllGroups()
+    {
+        $groups = self::select('group')
+            ->distinct()
+            ->pluck('group');
+
+        $result = [];
+        foreach ($groups as $group) {
+            $result[$group] = self::getFormattedForSelect($group);
+        }
+
+        return $result;
+    }
 }

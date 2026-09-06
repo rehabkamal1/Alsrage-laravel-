@@ -11,6 +11,7 @@ class OrderTracking extends Model
     protected $fillable = [
         'order_id',
         'external_office_id',
+        'saudi_office_id',
         'is_authenticated',
         'authentication_date',
         'certification_date',
@@ -42,6 +43,11 @@ class OrderTracking extends Model
     public function externalOffice()
     {
         return $this->belongsTo(ExternalOffice::class);
+    }
+
+    public function saudiOffice()
+    {
+        return $this->belongsTo(SaudiOffice::class);
     }
 
     public function attachments()

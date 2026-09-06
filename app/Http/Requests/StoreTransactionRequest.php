@@ -25,9 +25,8 @@ class StoreTransactionRequest extends FormRequest
             'bank_name' => 'nullable|string|max:255',
             'transfer_date' => 'nullable|date',
             'transfer_number' => 'nullable|string|max:100',
-            'status' => 'nullable|string',
-            'priority_level' => 'nullable|string',
             'notes' => 'nullable|string',
+            'is_reviewed' => 'sometimes|boolean',
         ];
     }
 }

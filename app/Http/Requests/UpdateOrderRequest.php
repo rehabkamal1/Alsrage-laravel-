@@ -42,6 +42,7 @@ class UpdateOrderRequest extends FormRequest
             'passport_date' => ['nullable', 'date'],
             'total_price' => ['nullable', 'numeric', 'min:0'],
             'musaned_paid' => ['nullable', 'numeric', 'min:0'],
+            'is_paid_by_office' => ['sometimes', 'boolean'],
             'notes' => ['nullable', 'string'],
             'attachment_titles' => ['nullable', 'array'],
             'attachment_titles.*' => ['nullable', 'string', 'max:255'],

@@ -29,6 +29,7 @@ class Order extends Model
         'total_price',
         'musaned_paid',
         'price_difference',
+        'is_paid_by_office',
         'visa_image',
         'contract_image',
         'status',
@@ -41,6 +42,7 @@ class Order extends Model
         'total_price' => 'decimal:2',
         'musaned_paid' => 'decimal:2',
         'price_difference' => 'decimal:2',
+        'is_paid_by_office' => 'boolean',
     ];
 
     public function client()
@@ -88,7 +90,12 @@ class Order extends Model
         parent::booting();
 
         static::saving(function ($order) {
-            $order->price_difference = ($order->total_price ?? 0) - ($order->musaned_paid ?? 0);
+            if ($order->is_paid_by_office) {
+                $order->musaned_paid = 0;
+                $order->price_difference = $order->total_price ?? 0;
+            } else {
+                $order->price_difference = ($order->total_price ?? 0) - ($order->musaned_paid ?? 0);
+            }
         });
     }
 }

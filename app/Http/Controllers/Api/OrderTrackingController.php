@@ -13,7 +13,7 @@ class OrderTrackingController extends Controller
 {
     public function index(Request $request)
     {
-        $query = OrderTracking::with(['order.client', 'order.saudiOffice', 'attachments']);
+        $query = OrderTracking::with(['order.client', 'order.saudiOffice', 'order.employee', 'saudiOffice', 'externalOffice', 'attachments']);
 
         if (!$request->boolean('include_completed')) {
             $query->where('is_authenticated', false);
@@ -44,16 +44,25 @@ class OrderTrackingController extends Controller
         }
 
         if ($request->filled('saudi_office_id')) {
-            $query->whereHas('order', fn($q) => $q->where('saudi_office_id', $request->saudi_office_id));
+            $query->where(function ($q) use ($request) {
+                $q->where('saudi_office_id', $request->saudi_office_id)
+                    ->orWhereHas('order', fn($oq) => $oq->where('saudi_office_id', $request->saudi_office_id));
+            });
         }
 
         if ($request->filled('external_office_id')) {
-            $query->where(fn($q) => $q->where('external_office_id', $request->external_office_id)
-                ->orWhereHas('order', fn($oq) => $oq->where('external_office_id', $request->external_office_id)));
+            $query->where(function ($q) use ($request) {
+                $q->where('external_office_id', $request->external_office_id)
+                    ->orWhereHas('order', fn($oq) => $oq->where('external_office_id', $request->external_office_id));
+            });
         }
 
         if ($request->filled('client_id')) {
             $query->whereHas('order', fn($q) => $q->where('client_id', $request->client_id));
+        }
+
+        if ($request->filled('employee_id')) {
+            $query->whereHas('order', fn($q) => $q->where('employee_id', $request->employee_id));
         }
 
         if ($request->filled('from_date')) {
@@ -131,7 +140,7 @@ class OrderTrackingController extends Controller
 
     public function show(OrderTracking $orderTracking)
     {
-        return new OrderTrackingResource($orderTracking->load(['order.client', 'order.saudiOffice', 'attachments']));
+        return new OrderTrackingResource($orderTracking->load(['order.client', 'order.saudiOffice', 'order.employee', 'saudiOffice', 'externalOffice', 'attachments']));
     }
 
     public function update(UpdateOrderTrackingRequest $request, OrderTracking $orderTracking)

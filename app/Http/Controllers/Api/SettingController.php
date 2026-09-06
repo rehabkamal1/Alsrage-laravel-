@@ -353,4 +353,80 @@ class SettingController extends Controller
         $setting->delete();
         return response()->json(['message' => 'تم الحذف بنجاح']);
     }
+
+    public function getNationalities()
+    {
+        $nationalities = Setting::where('group', 'nationality')
+            ->orderBy('sort_order')
+            ->get(['id', 'key', 'label', 'color', 'sort_order', 'is_active']);
+
+        return response()->json(['data' => $nationalities]);
+    }
+
+    public function getProfessions()
+    {
+        $professions = Setting::where('group', 'profession')
+            ->orderBy('sort_order')
+            ->get(['id', 'key', 'label', 'color', 'sort_order', 'is_active']);
+
+        return response()->json(['data' => $professions]);
+    }
+
+    public function updateNationalities(Request $request)
+    {
+        $nationalities = $request->input('nationalities', $request->input('statuses', []));
+
+        foreach ($nationalities as $nationality) {
+            Setting::updateOrCreate(
+                ['group' => 'nationality', 'key' => $nationality['key'] ?? ''],
+                [
+                    'label' => $nationality['label'] ?? '',
+                    'color' => $nationality['color'] ?? '#6c757d',
+                    'sort_order' => $nationality['sort_order'] ?? 0,
+                    'is_active' => $nationality['is_active'] ?? true,
+                ]
+            );
+        }
+
+        return response()->json(['message' => 'تم حفظ الجنسيات بنجاح']);
+    }
+
+    public function updateProfessions(Request $request)
+    {
+        $professions = $request->input('professions', $request->input('statuses', []));
+
+        foreach ($professions as $profession) {
+            Setting::updateOrCreate(
+                ['group' => 'profession', 'key' => $profession['key'] ?? ''],
+                [
+                    'label' => $profession['label'] ?? '',
+                    'color' => $profession['color'] ?? '#6c757d',
+                    'sort_order' => $profession['sort_order'] ?? 0,
+                    'is_active' => $profession['is_active'] ?? true,
+                ]
+            );
+        }
+
+        return response()->json(['message' => 'تم حفظ المهن بنجاح']);
+    }
+
+    public function deleteNationality(int $id)
+    {
+        $setting = Setting::where('group', 'nationality')->find($id);
+        if (!$setting) {
+            return response()->json(['message' => 'العنصر غير موجود'], 404);
+        }
+        $setting->delete();
+        return response()->json(['message' => 'تم الحذف بنجاح']);
+    }
+
+    public function deleteProfession(int $id)
+    {
+        $setting = Setting::where('group', 'profession')->find($id);
+        if (!$setting) {
+            return response()->json(['message' => 'العنصر غير موجود'], 404);
+        }
+        $setting->delete();
+        return response()->json(['message' => 'تم الحذف بنجاح']);
+    }
 }

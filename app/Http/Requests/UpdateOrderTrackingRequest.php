@@ -15,6 +15,7 @@ class UpdateOrderTrackingRequest extends FormRequest
     {
         return [
             'external_office_id' => ['nullable', 'exists:external_offices,id'],
+            'saudi_office_id' => ['nullable', 'exists:saudi_offices,id'],
             'is_authenticated' => ['sometimes', 'boolean'],
             'authentication_date' => ['nullable', 'date'],
             'certification_date' => ['nullable', 'date'],

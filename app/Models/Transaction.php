@@ -17,15 +17,15 @@ class Transaction extends Model
         'bank_name',
         'transfer_date',
         'transfer_number',
-        'status',
-        'priority_level',
         'notes',
+        'is_reviewed',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
         'transfer_date' => 'date',
         'order_ids' => 'array',
+        'is_reviewed' => 'boolean',
     ];
 
     public function order()

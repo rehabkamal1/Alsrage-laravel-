@@ -31,8 +31,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('orders', OrderController::class)->except('show');
     Route::get('/orders/without-tracking', [OrderController::class, 'getOrdersWithoutTracking']);
     Route::apiResource('order-tracking', OrderTrackingController::class);
-    Route::apiResource('transactions', TransactionController::class);
+
+    // =============== Transactions Routes ===============
+    // PUT THE CUSTOM ROUTE BEFORE THE RESOURCE ROUTE
+    Route::get('/transactions/orders-by-client', [TransactionController::class, 'getOrdersByClient']);
     Route::get('/finance/summary', [TransactionController::class, 'summary']);
+    Route::apiResource('transactions', TransactionController::class);
 
     Route::get('/settings/priority-levels', [SettingController::class, 'getPriorityLevels']);
     Route::get('/settings/passport-statuses', [SettingController::class, 'getPassportStatuses']);
@@ -76,6 +80,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/marketing-leads/saudi-office', [MarketingLeadController::class, 'storeSaudiOffice']);
     Route::post('/marketing-leads/external-office', [MarketingLeadController::class, 'storeExternalOfficeNew']);
     Route::post('/marketing-leads/service-office', [MarketingLeadController::class, 'storeServiceOfficeNew']);
+
+    Route::get('/settings/nationalities', [SettingController::class, 'getNationalities']);
+    Route::get('/settings/professions', [SettingController::class, 'getProfessions']);
+
+    Route::post('/settings/nationalities', [SettingController::class, 'updateNationalities']);
+    Route::post('/settings/professions', [SettingController::class, 'updateProfessions']);
+
+    Route::delete('/settings/nationalities/{id}', [SettingController::class, 'deleteNationality']);
+    Route::delete('/settings/professions/{id}', [SettingController::class, 'deleteProfession']);
 
     Route::apiResource('marketing-leads', MarketingLeadController::class);
 

@@ -38,6 +38,7 @@ class OrderResource extends JsonResource
             'passport_date' => $this->passport_date,
             'total_price' => $this->total_price,
             'musaned_paid' => $this->musaned_paid,
+            'is_paid_by_office' => $this->is_paid_by_office,
             'price_difference' => $this->price_difference,
             'visa_image' => $this->visa_image,
             'contract_image' => $this->contract_image,

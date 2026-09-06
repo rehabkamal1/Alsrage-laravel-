@@ -25,9 +25,8 @@ class OrderTransactionResource extends JsonResource
             'bank_name' => $this->bank_name,
             'transfer_date' => $this->transfer_date,
             'transfer_number' => $this->transfer_number,
-            'status' => $this->status,
-            'priority_level' => $this->priority_level,
             'notes' => $this->notes,
+            'is_reviewed' => $this->is_reviewed,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

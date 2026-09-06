@@ -13,7 +13,11 @@ class OrderTrackingResource extends JsonResource
             'id' => $this->id,
             'order_id' => $this->order_id,
             'order_number' => $this->order?->id,
-            'saudi_office_name' => $this->order?->saudiOffice?->name,
+            'saudi_office_id' => $this->saudi_office_id ?? $this->order?->saudi_office_id,
+            'saudi_office_name' => $this->saudiOffice?->name ?? $this->order?->saudiOffice?->name,
+            'external_office_id' => $this->external_office_id ?? $this->order?->external_office_id,
+            'external_office_name' => $this->externalOffice?->name ?? $this->order?->externalOffice?->name,
+            'external_office_country' => $this->externalOffice?->country ?? $this->order?->externalOffice?->country,
             'visa_holder_name' => $this->order?->visa_holder_name ?? $this->order?->client?->visa_holder_name,
             'visa_number' => $this->order?->visa_number,
             'id_number' => $this->order?->id_number ?? $this->order?->client?->id_number,
@@ -35,9 +39,6 @@ class OrderTrackingResource extends JsonResource
             'attachments' => AttachmentResource::collection($this->attachments),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
-            'external_office_id' => $this->external_office_id ?? $this->order?->external_office_id,
-            'external_office_name' => $this->externalOffice?->name ?? $this->order?->externalOffice?->name,
-            'external_office_country' => $this->externalOffice?->country ?? $this->order?->externalOffice?->country,
         ];
     }
 }

@@ -14,7 +14,7 @@ class StoreOrderRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'client_id' => ['nullable', 'exists:clients,id'],
+            'client_id' => ['required', 'exists:clients,id'],
             'employee_id' => ['required', 'exists:employees,id'],
             'visa_holder_name' => ['required', 'string', 'max:255'],
             'visa_holder_phone' => ['nullable', 'string', 'max:255'],
@@ -37,6 +37,7 @@ class StoreOrderRequest extends FormRequest
             'passport_date' => ['nullable', 'date'],
             'total_price' => ['nullable', 'numeric', 'min:0'],
             'musaned_paid' => ['nullable', 'numeric', 'min:0'],
+            'is_paid_by_office' => ['sometimes', 'boolean'],
             'notes' => ['nullable', 'string'],
             'attachment_titles' => ['nullable', 'array'],
             'attachment_titles.*' => ['nullable', 'string', 'max:255'],
@@ -49,6 +50,7 @@ class StoreOrderRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'client_id.required' => 'حقل المندوب مطلوب',
             'visa_holder_name.required' => 'حقل اسم صاحب التأشيرة مطلوب',
             'employee_id.required' => 'حقل اسم الموظف مطلوب',
             'saudi_office_id.required' => 'حقل المكتب السعودي مطلوب',

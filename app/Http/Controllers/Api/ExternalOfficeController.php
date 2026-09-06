@@ -13,14 +13,17 @@ class ExternalOfficeController extends Controller
     {
         $query = ExternalOffice::query();
 
+        // Generic search
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('country', 'like', "%{$search}%");
+                    ->orWhere('country', 'like', "%{$search}%")
+                    ->orWhere('notes', 'like', "%{$search}%");
             });
         }
 
+        // Date filters
         if ($request->filled('from_date')) {
             $query->whereDate('created_at', '>=', $request->date('from_date'));
         }
@@ -29,13 +32,22 @@ class ExternalOfficeController extends Controller
             $query->whereDate('created_at', '<=', $request->date('to_date'));
         }
 
+        // Sorting
+        $sortField = $request->input('sort_field', 'id');
+        $sortDirection = $request->input('sort_direction', 'desc');
+        $allowedSortFields = ['id', 'name', 'country', 'created_at'];
+        if (!in_array($sortField, $allowedSortFields)) {
+            $sortField = 'id';
+        }
+        $query->orderBy($sortField, $sortDirection);
+
         if ($request->boolean('all')) {
-            return ExternalOfficeResource::collection($query->latest()->get());
+            return ExternalOfficeResource::collection($query->get());
         }
 
-        $perPage = $request->integer('per_page', 500);
+        $perPage = $request->integer('per_page', 15);
 
-        return ExternalOfficeResource::collection($query->latest()->paginate($perPage));
+        return ExternalOfficeResource::collection($query->paginate($perPage));
     }
 
     public function store(Request $request)

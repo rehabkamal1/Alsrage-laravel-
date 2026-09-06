@@ -19,15 +19,14 @@ class UpdateTransactionRequest extends FormRequest
             'order_id' => 'nullable|exists:orders,id',
             'order_ids' => 'nullable|array',
             'order_ids.*' => 'exists:orders,id',
-            'client_id' => 'required|exists:clients,id',
+            'client_id' => 'nullable|exists:clients,id',
             'employee_id' => 'nullable|exists:employees,id',
             'payment_method' => 'nullable|string',
             'bank_name' => 'nullable|string|max:255',
             'transfer_date' => 'nullable|date',
             'transfer_number' => 'nullable|string|max:100',
-            'status' => 'nullable|string',
-            'priority_level' => 'nullable|string',
             'notes' => 'nullable|string',
+            'is_reviewed' => 'sometimes|boolean',
         ];
     }
 }

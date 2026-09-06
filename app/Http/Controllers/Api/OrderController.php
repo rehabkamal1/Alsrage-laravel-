@@ -8,7 +8,9 @@ use App\Http\Requests\UpdateOrderRequest;
 use App\Http\Resources\OrderResource;
 use App\Models\Client;
 use App\Models\Order;
+use App\Models\Setting;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
 {
@@ -44,6 +46,7 @@ class OrderController extends Controller
             ->when($request->filled('client_id'), fn($query) => $query->where('client_id', $request->integer('client_id')))
             ->when($request->filled('saudi_office_id'), fn($query) => $query->where('saudi_office_id', $request->integer('saudi_office_id')))
             ->when($request->filled('external_office_id'), fn($query) => $query->where('external_office_id', $request->integer('external_office_id')))
+            ->when($request->filled('is_paid_by_office'), fn($query) => $query->where('is_paid_by_office', $request->boolean('is_paid_by_office')))
             ->when($request->filled('from_date'), fn($query) => $query->whereDate('created_at', '>=', $request->date('from_date')))
             ->when($request->filled('to_date'), fn($query) => $query->whereDate('created_at', '<=', $request->date('to_date')))
             ->when($request->boolean('without_tracking'), fn($query) => $query->whereDoesntHave('tracking'))
@@ -61,6 +64,32 @@ class OrderController extends Controller
 
     public function store(StoreOrderRequest $request)
     {
+        if ($request->filled('nationality')) {
+            $nationalityExists = Setting::where('group', 'nationality')
+                ->where('key', $request->nationality)
+                ->where('is_active', true)
+                ->exists();
+
+            if (!$nationalityExists) {
+                throw ValidationException::withMessages([
+                    'nationality' => ['الجنسية المحددة غير موجودة في الإعدادات']
+                ]);
+            }
+        }
+
+        if ($request->filled('profession')) {
+            $professionExists = Setting::where('group', 'profession')
+                ->where('key', $request->profession)
+                ->where('is_active', true)
+                ->exists();
+
+            if (!$professionExists) {
+                throw ValidationException::withMessages([
+                    'profession' => ['المهنة المحددة غير موجودة في الإعدادات']
+                ]);
+            }
+        }
+
         if (!$request->client_id && $request->new_client_name && $request->new_client_phone) {
             $client = Client::create([
                 'name' => $request->new_client_name,
@@ -82,6 +111,32 @@ class OrderController extends Controller
 
     public function update(UpdateOrderRequest $request, Order $order)
     {
+        if ($request->filled('nationality')) {
+            $nationalityExists = Setting::where('group', 'nationality')
+                ->where('key', $request->nationality)
+                ->where('is_active', true)
+                ->exists();
+
+            if (!$nationalityExists) {
+                throw ValidationException::withMessages([
+                    'nationality' => ['الجنسية المحددة غير موجودة في الإعدادات']
+                ]);
+            }
+        }
+
+        if ($request->filled('profession')) {
+            $professionExists = Setting::where('group', 'profession')
+                ->where('key', $request->profession)
+                ->where('is_active', true)
+                ->exists();
+
+            if (!$professionExists) {
+                throw ValidationException::withMessages([
+                    'profession' => ['المهنة المحددة غير موجودة في الإعدادات']
+                ]);
+            }
+        }
+
         $data = $request->validated();
         unset($data['attachment_files'], $data['attachment_titles']);
         $order->update($data);
@@ -127,7 +182,7 @@ class OrderController extends Controller
     public function getOrdersWithoutTracking(Request $request)
     {
         $query = Order::query()
-            ->with(['client', 'saudiOffice', 'externalOffice'])
+            ->with(['client', 'saudiOffice', 'externalOffice', 'employee'])
             ->whereDoesntHave('tracking');
 
         if ($request->filled('search')) {

@@ -7,6 +7,7 @@ use App\Http\Requests\StoreTransactionRequest;
 use App\Http\Requests\UpdateTransactionRequest;
 use App\Http\Resources\OrderTransactionResource;
 use App\Models\Transaction;
+use App\Models\Order;
 use Illuminate\Http\Request;
 
 class TransactionController extends Controller
@@ -40,16 +41,12 @@ class TransactionController extends Controller
             $query->where('payment_method', $request->payment_method);
         }
 
-        if ($request->has('status') && $request->status) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->has('priority_level') && $request->priority_level) {
-            $query->where('priority_level', $request->priority_level);
-        }
-
         if ($request->has('bank_name') && $request->bank_name) {
             $query->where('bank_name', 'like', '%' . $request->bank_name . '%');
+        }
+
+        if ($request->has('is_reviewed') && $request->is_reviewed !== '') {
+            $query->where('is_reviewed', filter_var($request->is_reviewed, FILTER_VALIDATE_BOOLEAN));
         }
 
         if ($request->has('search') && $request->search) {
@@ -82,7 +79,7 @@ class TransactionController extends Controller
         $sortField = $request->input('sort_field', 'id');
         $sortDirection = $request->input('sort_direction', 'desc');
 
-        $allowedSortFields = ['id', 'amount', 'transfer_date', 'created_at', 'type', 'status', 'priority_level'];
+        $allowedSortFields = ['id', 'amount', 'transfer_date', 'created_at', 'type'];
         if (!in_array($sortField, $allowedSortFields)) {
             $sortField = 'id';
         }
@@ -154,6 +151,29 @@ class TransactionController extends Controller
                 'total_payments' => $totalPayments,
                 'net_profit' => $netProfit,
             ],
+        ]);
+    }
+
+    public function getOrdersByClient(Request $request)
+    {
+        $clientId = $request->query('client_id');
+
+        if (!$clientId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'client_id is required',
+                'data' => []
+            ], 400);
+        }
+
+        $orders = Order::where('client_id', $clientId)
+            ->with(['client', 'saudiOffice', 'externalOffice'])
+            ->orderBy('id', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $orders
         ]);
     }
 }
