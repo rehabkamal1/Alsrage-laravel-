@@ -83,12 +83,15 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/settings/nationalities', [SettingController::class, 'getNationalities']);
     Route::get('/settings/professions', [SettingController::class, 'getProfessions']);
+    Route::get('/settings/arrival-destinations', [SettingController::class, 'getArrivalDestinations']);
 
     Route::post('/settings/nationalities', [SettingController::class, 'updateNationalities']);
     Route::post('/settings/professions', [SettingController::class, 'updateProfessions']);
+    Route::post('/settings/arrival-destinations', [SettingController::class, 'updateArrivalDestinations']);
 
     Route::delete('/settings/nationalities/{id}', [SettingController::class, 'deleteNationality']);
     Route::delete('/settings/professions/{id}', [SettingController::class, 'deleteProfession']);
+    Route::delete('/settings/arrival-destinations/{id}', [SettingController::class, 'deleteArrivalDestination']);
 
     Route::apiResource('marketing-leads', MarketingLeadController::class);
 

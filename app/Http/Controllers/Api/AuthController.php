@@ -60,9 +60,12 @@ class AuthController extends Controller
         }
 
         if (! $user || ! Hash::check($validated['password'], $user->password)) {
-            throw ValidationException::withMessages([
-                'email' => ['بيانات الدخول غير صحيحة.'],
-            ]);
+            return response()->json([
+                'message' => 'بيانات الدخول غير صحيحة.',
+                'errors' => [
+                    'email' => ['بيانات الدخول غير صحيحة.'],
+                ],
+            ], 401);
         }
 
         $token = $user->createToken('api-token')->plainTextToken;
@@ -88,4 +91,3 @@ class AuthController extends Controller
         return response()->json($request->user());
     }
 }
-

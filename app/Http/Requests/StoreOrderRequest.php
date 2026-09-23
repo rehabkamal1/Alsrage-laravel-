@@ -30,6 +30,7 @@ class StoreOrderRequest extends FormRequest
             'profession' => ['nullable', 'string', 'max:255'],
             'id_number' => ['required', 'string', 'max:100'],
             'passport_number' => ['required', 'string', 'max:100'],
+            'birth_date' => ['nullable', 'date'],
             'musaned_contract_number' => ['nullable', 'string', 'unique:orders,musaned_contract_number'],
             'authentication_contract_number' => ['nullable', 'string', 'max:255'],
             'external_agent_number' => ['nullable', 'string', 'max:255'],

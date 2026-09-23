@@ -372,6 +372,72 @@ class SettingController extends Controller
         return response()->json(['data' => $professions]);
     }
 
+    public function getArrivalDestinations()
+    {
+        $destinations = Setting::where('group', 'arrival_destination')
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get(['id', 'key', 'label', 'color', 'sort_order', 'nationality_key', 'is_active']);
+
+        return response()->json(['data' => $destinations]);
+    }
+
+    public function updateArrivalDestinations(Request $request)
+    {
+        $request->validate([
+            'destinations' => ['required', 'array'],
+            'destinations.*.key' => ['required', 'string', 'max:255'],
+            'destinations.*.label' => ['required', 'string', 'max:255'],
+            'destinations.*.nationality_key' => [
+                'required',
+                'string',
+                'max:255',
+                'exists:settings,key',
+            ],
+        ], [
+            'destinations.*.nationality_key.required' => 'يجب اختيار الجنسية لجهة الوصول',
+            'destinations.*.nationality_key.exists' => 'الجنسية المحددة غير موجودة في الإعدادات',
+        ]);
+
+        $destinations = $request->input('destinations', []);
+
+        $validNationalities = Setting::where('group', 'nationality')
+            ->where('is_active', true)
+            ->pluck('key')
+            ->all();
+
+        foreach ($destinations as $destination) {
+            if (!in_array($destination['nationality_key'], $validNationalities, true)) {
+                return response()->json([
+                    'message' => 'الجنسية المحددة غير موجودة في الإعدادات',
+                ], 422);
+            }
+
+            Setting::updateOrCreate(
+                ['group' => 'arrival_destination', 'key' => $destination['key'] ?? ''],
+                [
+                    'label' => $destination['label'] ?? '',
+                    'color' => $destination['color'] ?? '#6c757d',
+                    'sort_order' => $destination['sort_order'] ?? 0,
+                    'nationality_key' => $destination['nationality_key'],
+                    'is_active' => $destination['is_active'] ?? true,
+                ]
+            );
+        }
+
+        return response()->json(['message' => 'تم حفظ جهات القدوم بنجاح']);
+    }
+
+    public function deleteArrivalDestination(int $id)
+    {
+        $setting = Setting::where('group', 'arrival_destination')->find($id);
+        if (!$setting) {
+            return response()->json(['message' => 'العنصر غير موجود'], 404);
+        }
+        $setting->delete();
+        return response()->json(['message' => 'تم الحذف بنجاح']);
+    }
+
     public function updateNationalities(Request $request)
     {
         $nationalities = $request->input('nationalities', $request->input('statuses', []));

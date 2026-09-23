@@ -18,7 +18,7 @@ class UpdateClientRequest extends FormRequest
         $clientId = $client instanceof \App\Models\Client ? $client->id : $client;
 
         return [
-            'name' => 'nullable|string|max:255',
+            'name' => 'sometimes|required|string|max:255',
             'client_type' => 'sometimes|string|max:255',
             'employee_id' => 'nullable|exists:employees,id',
             'phone' => [

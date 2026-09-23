@@ -21,6 +21,7 @@ class Order extends Model
         'id_number',
         'sponsor_number',
         'passport_number',
+        'birth_date',
         'musaned_contract_number',
         'authentication_contract_number',
         'external_agent_number',
@@ -39,6 +40,7 @@ class Order extends Model
     protected $casts = [
         'contract_date' => 'date',
         'passport_date' => 'date',
+        'birth_date' => 'date',
         'total_price' => 'decimal:2',
         'musaned_paid' => 'decimal:2',
         'price_difference' => 'decimal:2',

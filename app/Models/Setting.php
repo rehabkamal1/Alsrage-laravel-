@@ -13,6 +13,7 @@ class Setting extends Model
         'color',
         'sort_order',
         'target_days',
+        'nationality_key',
         'is_active'
     ];
 

@@ -90,6 +90,23 @@ class OrderController extends Controller
             }
         }
 
+        if ($request->filled('arrival_destination') && $request->filled('nationality')) {
+            $destinationMatchesNationality = Setting::where('group', 'arrival_destination')
+                ->where(function ($query) use ($request) {
+                    $query->where('key', $request->arrival_destination)
+                        ->orWhere('label', $request->arrival_destination);
+                })
+                ->where('nationality_key', $request->nationality)
+                ->where('is_active', true)
+                ->exists();
+
+            if (!$destinationMatchesNationality) {
+                throw ValidationException::withMessages([
+                    'arrival_destination' => ['جهة القدوم لا تتوافق مع الجنسية المحددة']
+                ]);
+            }
+        }
+
         if (!$request->client_id && $request->new_client_name && $request->new_client_phone) {
             $client = Client::create([
                 'name' => $request->new_client_name,
@@ -133,6 +150,23 @@ class OrderController extends Controller
             if (!$professionExists) {
                 throw ValidationException::withMessages([
                     'profession' => ['المهنة المحددة غير موجودة في الإعدادات']
+                ]);
+            }
+        }
+
+        if ($request->filled('arrival_destination') && $request->filled('nationality')) {
+            $destinationMatchesNationality = Setting::where('group', 'arrival_destination')
+                ->where(function ($query) use ($request) {
+                    $query->where('key', $request->arrival_destination)
+                        ->orWhere('label', $request->arrival_destination);
+                })
+                ->where('nationality_key', $request->nationality)
+                ->where('is_active', true)
+                ->exists();
+
+            if (!$destinationMatchesNationality) {
+                throw ValidationException::withMessages([
+                    'arrival_destination' => ['جهة القدوم لا تتوافق مع الجنسية المحددة']
                 ]);
             }
         }

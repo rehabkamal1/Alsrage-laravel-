@@ -31,6 +31,7 @@ class UpdateOrderRequest extends FormRequest
             'profession' => ['nullable', 'string', 'max:255'],
             'id_number' => ['nullable', 'string', 'max:100'],
             'passport_number' => ['nullable', 'string', 'max:100'],
+            'birth_date' => ['nullable', 'date'],
             'musaned_contract_number' => [
                 'nullable',
                 'string',
