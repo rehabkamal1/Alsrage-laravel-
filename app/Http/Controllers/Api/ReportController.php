@@ -11,7 +11,7 @@ class ReportController extends Controller
 {
     public function orderFollowUp(Request $request)
     {
-        $query = Order::with(['client', 'employee', 'tracking']);
+        $query = Order::with(['client', 'employee', 'tracking', 'saudiOffice', 'externalOffice']);
 
         // Filters
         if ($request->filled('date_from')) {
@@ -22,6 +22,8 @@ class ReportController extends Controller
         }
         if ($request->filled('employee_id')) {
             $query->where('employee_id', $request->employee_id);
+        } elseif ($request->filled('marketer_id')) {
+            $query->where('employee_id', $request->marketer_id);
         }
         if ($request->filled('saudi_office_id')) {
             $query->where('saudi_office_id', $request->saudi_office_id);
@@ -29,22 +31,25 @@ class ReportController extends Controller
         if ($request->filled('external_office_id')) {
             $query->where('external_office_id', $request->external_office_id);
         }
-        if ($request->filled('marketer_id')) {
-            // Assuming marketers are employees who created/are assigned to clients
-            // or just use employee_id if there is no distinct marketer field
-            $query->where('employee_id', $request->marketer_id);
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        } else {
+            // Only active orders for follow up when no specific status is selected
+            $query->whereNotIn('status', ['completed', 'cancelled', 'مكتمل', 'ملغي']);
         }
-
-        // Only active orders for follow up
-        $query->whereNotIn('status', ['completed', 'cancelled', 'مكتمل', 'ملغي']);
 
         $orders = $query->get();
 
-        // Load dynamic target SLA days for each stage/status from settings
-        $statusSettingsMap = \App\Models\Setting::where('group', 'order_status')
-            ->get()
+        // Load dynamic target SLA days and labels for each stage/status from settings
+        $statusSettings = \App\Models\Setting::where('group', 'order_status')->get();
+        $statusSettingsMap = $statusSettings
             ->mapWithKeys(function ($item) {
                 return [$item->key => (int) ($item->target_days ?: 60)];
+            })
+            ->toArray();
+        $statusLabelMap = $statusSettings
+            ->mapWithKeys(function ($item) {
+                return [$item->key => $item->label];
             })
             ->toArray();
 
@@ -55,7 +60,7 @@ class ReportController extends Controller
         $exceededSla = 0;
         $totalDelayDays = 0;
 
-        $processedOrders = $orders->map(function ($order) use ($statusSettingsMap, $now, &$totalLate, &$withoutFollowup, &$exceededSla, &$totalDelayDays) {
+        $processedOrders = $orders->map(function ($order) use ($statusSettingsMap, $statusLabelMap, $now, &$totalLate, &$withoutFollowup, &$exceededSla, &$totalDelayDays) {
             $startDate = $order->contract_date ? Carbon::parse($order->contract_date) : $order->created_at;
             $daysSinceStart = (int) $startDate->diffInDays($now);
             
@@ -75,25 +80,43 @@ class ReportController extends Controller
                 $withoutFollowup++;
             }
 
+            $statusLabel = $statusLabelMap[$order->status] ?? $order->status;
+
             return [
                 'id' => $order->id,
                 'order_number' => $order->id, // fallback if there is no order_number field
+                'visa_number' => $order->visa_number ?: '-',
                 'client' => ['name' => $order->client ? $order->client->name : '-'],
+                'client_name' => $order->client ? $order->client->name : '-',
                 'employee' => ['name' => $order->employee ? $order->employee->name : '-'],
-                'status' => ['name' => $order->status ?: 'غير محدد'],
+                'employee_name' => $order->employee ? $order->employee->name : '-',
+                'saudi_office' => $order->saudiOffice ? $order->saudiOffice->name : '-',
+                'external_office' => $order->externalOffice ? $order->externalOffice->name : '-',
+                'status' => [
+                    'name' => $statusLabel ?: 'غير محدد',
+                    'key' => $order->status,
+                ],
+                'status_name' => $statusLabel ?: 'غير محدد',
+                'raw_status' => $order->status,
                 'last_update_date' => $order->tracking && $order->tracking->last_action_date ? $order->tracking->last_action_date->format('Y-m-d') : '-',
                 'delay_days' => $delayDays,
                 'exceeded_sla' => $isLate,
+                'is_without_followup' => $isWithoutFollowup,
+                'contract_date' => $order->contract_date ? Carbon::parse($order->contract_date)->format('Y-m-d') : ($order->created_at ? $order->created_at->format('Y-m-d') : '-'),
             ];
         });
 
         $avgDelayDays = $totalLate > 0 ? round($totalDelayDays / $totalLate, 1) : 0;
+        $totalOrders = $orders->count();
+        $withinSla = max(0, $totalOrders - $exceededSla);
 
         return response()->json([
             'kpis' => [
+                'total_orders' => $totalOrders,
                 'total_late' => $totalLate,
                 'without_followup' => $withoutFollowup,
                 'exceeded_sla' => $exceededSla,
+                'within_sla' => $withinSla,
                 'avg_delay_days' => $avgDelayDays,
             ],
             'orders' => $processedOrders,
@@ -114,6 +137,11 @@ class ReportController extends Controller
         }
         if ($request->filled('employee_id')) {
             $query->where('employee_id', $request->employee_id);
+        } elseif ($request->filled('marketer_id')) {
+            $query->where('employee_id', $request->marketer_id);
+        }
+        if ($request->filled('client_id')) {
+            $query->where('client_id', $request->client_id);
         }
         if ($request->filled('saudi_office_id')) {
             $query->where('saudi_office_id', $request->saudi_office_id);
@@ -219,8 +247,8 @@ class ReportController extends Controller
         // Accumulator for overall status counts across all offices
         $globalStatusCounts = [];
 
-        $processOfficeOrders = function ($officeQuery) use ($dateFrom, $dateTo, $statusesFilter, $statusColorMap, $statusLabelMap, &$globalStatusCounts) {
-            return $officeQuery->get()->map(function ($office) use ($dateFrom, $dateTo, $statusesFilter, $statusColorMap, $statusLabelMap, &$globalStatusCounts) {
+        $processOfficeOrders = function ($officeQuery, $isSaudi = true) use ($dateFrom, $dateTo, $saudiOfficeId, $externalOfficeId, $statusesFilter, $statusColorMap, $statusLabelMap, &$globalStatusCounts) {
+            return $officeQuery->get()->map(function ($office) use ($isSaudi, $dateFrom, $dateTo, $saudiOfficeId, $externalOfficeId, $statusesFilter, $statusColorMap, $statusLabelMap, &$globalStatusCounts) {
                 $ordersQuery = $office->orders()->with(['client', 'employee']);
 
                 if (!empty($dateFrom)) {
@@ -228,6 +256,12 @@ class ReportController extends Controller
                 }
                 if (!empty($dateTo)) {
                     $ordersQuery->whereDate('created_at', '<=', $dateTo);
+                }
+                if ($isSaudi && !empty($externalOfficeId)) {
+                    $ordersQuery->where('external_office_id', $externalOfficeId);
+                }
+                if (!$isSaudi && !empty($saudiOfficeId)) {
+                    $ordersQuery->where('saudi_office_id', $saudiOfficeId);
                 }
                 if (!empty($statusesFilter)) {
                     $ordersQuery->where(function($q) use ($statusesFilter) {
@@ -327,7 +361,12 @@ class ReportController extends Controller
         if (!empty($saudiOfficeId)) {
             $saudiQuery->where('id', $saudiOfficeId);
         }
-        $saudiOffices = $processOfficeOrders($saudiQuery);
+        if (!empty($externalOfficeId)) {
+            $saudiQuery->whereHas('orders', function ($q) use ($externalOfficeId) {
+                $q->where('external_office_id', $externalOfficeId);
+            });
+        }
+        $saudiOffices = $processOfficeOrders($saudiQuery, true);
 
         // 2. Process External Offices
         $externalQuery = \App\Models\ExternalOffice::query();
@@ -337,7 +376,12 @@ class ReportController extends Controller
         if (!empty($externalOfficeId)) {
             $externalQuery->where('id', $externalOfficeId);
         }
-        $externalOffices = $processOfficeOrders($externalQuery);
+        if (!empty($saudiOfficeId)) {
+            $externalQuery->whereHas('orders', function ($q) use ($saudiOfficeId) {
+                $q->where('saudi_office_id', $saudiOfficeId);
+            });
+        }
+        $externalOffices = $processOfficeOrders($externalQuery, false);
 
         // Summary KPIs
         $totalSaudiOrders = $saudiOffices->sum('total_orders');

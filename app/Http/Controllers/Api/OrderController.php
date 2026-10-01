@@ -59,6 +59,12 @@ class OrderController extends Controller
         return OrderResource::collection($orders);
     }
 
+    public function show(Order $order)
+    {
+        $order->load(['client', 'employee', 'saudiOffice', 'externalOffice', 'tracking', 'transactions', 'attachments']);
+        return new OrderResource($order);
+    }
+
     public function store(StoreOrderRequest $request)
     {
         if (!$request->client_id && $request->new_client_name && $request->new_client_phone) {
