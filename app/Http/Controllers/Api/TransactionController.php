@@ -99,6 +99,8 @@ class TransactionController extends Controller
         }
         $transaction = Transaction::create($data);
 
+        $this->syncOrderPayments($transaction->order_id);
+
         return (new OrderTransactionResource($transaction->load(['order.client', 'employee', 'client'])))
             ->response()
             ->setStatusCode(201);
@@ -111,22 +113,60 @@ class TransactionController extends Controller
 
     public function update(UpdateTransactionRequest $request, Transaction $transaction)
     {
+        $oldOrderId = $transaction->order_id;
         $data = $request->validated();
         if ($request->has('order_ids') && is_array($request->order_ids) && count($request->order_ids) > 0) {
             $data['order_id'] = $request->order_ids[0];
         }
         $transaction->update($data);
 
+        $this->syncOrderPayments($transaction->order_id);
+        if ($oldOrderId && $oldOrderId !== $transaction->order_id) {
+            $this->syncOrderPayments($oldOrderId);
+        }
+
         return new OrderTransactionResource($transaction->load(['order.client', 'employee', 'client']));
     }
 
     public function destroy(Transaction $transaction)
     {
+        $orderId = $transaction->order_id;
         $transaction->delete();
+
+        if ($orderId) {
+            $this->syncOrderPayments($orderId);
+        }
 
         return response()->json([
             'message' => 'تم حذف الحوالة بنجاح.',
         ]);
+    }
+
+    private function syncOrderPayments($orderId): void
+    {
+        if (!$orderId) {
+            return;
+        }
+
+        $order = Order::find($orderId);
+        if (!$order) {
+            return;
+        }
+
+        $receiptsSum = (float) Transaction::where('order_id', $orderId)
+            ->where('type', 'receipt')
+            ->sum('amount');
+
+        if ($receiptsSum > 0) {
+            $order->musaned_paid = $receiptsSum;
+            $totalPrice = (float) ($order->total_price ?? 0);
+            $order->price_difference = max(0, $totalPrice - $receiptsSum);
+
+            if ($receiptsSum >= $totalPrice && $totalPrice > 0) {
+                $order->status = 'تم السداد مساند';
+            }
+            $order->saveQuietly();
+        }
     }
 
     public function summary(Request $request)

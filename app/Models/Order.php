@@ -85,6 +85,21 @@ class Order extends Model
         return $this->morphMany(Attachment::class, 'attachable');
     }
 
+    public static function checkAwaitingMusanedTransferTimeouts(): void
+    {
+        $cutoff = \Carbon\Carbon::now()->subHours(24);
+
+        self::where(function ($q) {
+            $q->where('status', 'تم انتظار حوالة مساند')
+              ->orWhere('status', 'بانتظار حوالة مساند')
+              ->orWhere('status', 'awaiting_musaned_transfer');
+        })
+        ->where('updated_at', '<', $cutoff)
+        ->update([
+            'status' => 'لم يتم السداد',
+        ]);
+    }
+
     protected static function booting()
     {
         parent::booting();

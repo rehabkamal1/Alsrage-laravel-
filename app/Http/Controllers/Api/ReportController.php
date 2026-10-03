@@ -430,7 +430,9 @@ class ReportController extends Controller
 
     public function financialCollections(Request $request)
     {
-        $query = Order::with(['client', 'employee.saudiOffice', 'saudiOffice', 'externalOffice']);
+        Order::checkAwaitingMusanedTransferTimeouts();
+
+        $query = Order::with(['client', 'employee.saudiOffice', 'saudiOffice', 'externalOffice', 'transactions']);
 
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->date_from);
@@ -441,9 +443,35 @@ class ReportController extends Controller
         if ($request->filled('saudi_office_id')) {
             $query->where('saudi_office_id', $request->saudi_office_id);
         }
+        if ($request->filled('client_id')) {
+            $query->where('client_id', $request->client_id);
+        }
         if ($request->filled('employee_id')) {
             $query->where('employee_id', $request->employee_id);
+        } elseif ($request->filled('marketer_id')) {
+            $query->where('employee_id', $request->marketer_id);
         }
+
+        // Contract & Payment Status filter (Default: only 'تم السداد مساند' as requested in Point 3)
+        $contractStatus = $request->input('contract_status', 'musaned_paid');
+        if ($contractStatus === 'musaned_paid') {
+            $query->where(function($q) {
+                $q->where('status', 'تم السداد مساند')
+                  ->orWhere('status', 'musaned_paid')
+                  ->orWhere('musaned_paid', '>', 0);
+            });
+        } elseif ($contractStatus === 'active') {
+            $query->whereNotIn('status', ['completed', 'cancelled', 'canceled', 'مكتمل', 'ملغي']);
+        } elseif ($contractStatus === 'completed') {
+            $query->whereIn('status', ['completed', 'مكتمل']);
+        } elseif ($contractStatus === 'cancelled') {
+            $query->whereIn('status', ['cancelled', 'canceled', 'ملغي']);
+        } elseif ($contractStatus === 'awaiting_transfer') {
+            $query->whereIn('status', ['تم انتظار حوالة مساند', 'بانتظار حوالة مساند', 'awaiting_musaned_transfer']);
+        } elseif ($contractStatus === 'not_paid') {
+            $query->whereIn('status', ['لم يتم السداد', 'not_paid']);
+        }
+
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
@@ -497,6 +525,9 @@ class ReportController extends Controller
                 $paymentStatus = "محصل جزئياً";
             }
 
+            $latestTx = $order->transactions?->sortByDesc('created_at')->first();
+            $latestTxTime = $latestTx ? $latestTx->created_at->format('Y-m-d H:i') : '-';
+
             return [
                 'id' => $order->id,
                 'visa_number' => $order->visa_number ?: '-',
@@ -517,6 +548,7 @@ class ReportController extends Controller
                 'paid_amount' => $paid,
                 'remaining_amount' => $remaining,
                 'payment_status' => $paymentStatus,
+                'latest_transaction_time' => $latestTxTime,
                 'created_at' => $order->created_at ? $order->created_at->format('Y-m-d') : '-',
             ];
         });
@@ -633,6 +665,16 @@ class ReportController extends Controller
             'orders' => $financialOrders,
             'clients_summary' => $clientsSummary,
             'marketers_summary' => $marketersSummary,
+            'clients' => \App\Models\Client::select('id', 'name', 'phone')->orderBy('name')->get(),
+            'employees' => \App\Models\Employee::select('id', 'name', 'username')
+                ->orderBy('name')
+                ->get()
+                ->map(function ($e) {
+                    return [
+                        'id' => $e->id,
+                        'name' => $e->name ?: ($e->username ?: "موظف #{$e->id}"),
+                    ];
+                }),
         ]);
     }
 
