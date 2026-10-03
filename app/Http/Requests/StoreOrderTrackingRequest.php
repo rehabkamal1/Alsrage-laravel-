@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Models\OrderTracking;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreOrderTrackingRequest extends FormRequest
 {
@@ -15,6 +17,7 @@ class StoreOrderTrackingRequest extends FormRequest
     {
         return [
             'order_id' => ['required', 'exists:orders,id'],
+            'workflow_status' => ['nullable', 'string', Rule::in(OrderTracking::WORKFLOW_STATUSES)],
             'external_office_id' => ['nullable', 'exists:external_offices,id'],
             'saudi_office_id' => ['nullable', 'exists:saudi_offices,id'],
             'is_authenticated' => ['sometimes', 'boolean'],

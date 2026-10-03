@@ -32,11 +32,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/orders/without-tracking', [OrderController::class, 'getOrdersWithoutTracking']);
     Route::apiResource('order-tracking', OrderTrackingController::class);
 
-    // =============== Transactions Routes ===============
-    // PUT THE CUSTOM ROUTE BEFORE THE RESOURCE ROUTE
-    Route::get('/transactions/orders-by-client', [TransactionController::class, 'getOrdersByClient']);
-    Route::get('/finance/summary', [TransactionController::class, 'summary']);
-    Route::apiResource('transactions', TransactionController::class);
+    Route::middleware('not-hidden:hide_transactions')->group(function () {
+        Route::get('/transactions/orders-by-client', [TransactionController::class, 'getOrdersByClient']);
+        Route::get('/finance/summary', [TransactionController::class, 'summary']);
+        Route::apiResource('transactions', TransactionController::class);
+        Route::get('/reports/financial-collections', [ReportController::class, 'financialCollections']);
+    });
 
     Route::get('/settings/priority-levels', [SettingController::class, 'getPriorityLevels']);
     Route::get('/settings/passport-statuses', [SettingController::class, 'getPassportStatuses']);
@@ -44,6 +45,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/settings/payment-methods', [SettingController::class, 'getPaymentMethods']);
     Route::get('/settings/bank-names', [SettingController::class, 'getBankNames']);
     Route::get('/settings/order-statuses', [SettingController::class, 'getOrderStatuses']);
+    Route::get('/settings/order-process-statuses', [SettingController::class, 'getOrderProcessStatuses']);
     Route::get('/settings/service-types', [SettingController::class, 'getServiceTypes']);
     Route::get('/settings/authentication-statuses', [SettingController::class, 'getAuthenticationStatuses']);
     Route::get('/settings/authorization-statuses', [SettingController::class, 'getAuthorizationStatuses']);
@@ -54,6 +56,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/settings/payment-methods', [SettingController::class, 'updatePaymentMethods']);
     Route::post('/settings/bank-names', [SettingController::class, 'updateBankNames']);
     Route::post('/settings/order-statuses', [SettingController::class, 'updateOrderStatuses']);
+    Route::post('/settings/order-process-statuses', [SettingController::class, 'updateOrderProcessStatuses']);
     Route::post('/settings/service-types', [SettingController::class, 'updateServiceTypes']);
     Route::post('/settings/authentication-statuses', [SettingController::class, 'updateAuthenticationStatuses']);
     Route::post('/settings/authorization-statuses', [SettingController::class, 'updateAuthorizationStatuses']);
@@ -64,6 +67,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/settings/payment-methods/{id}', [SettingController::class, 'deletePaymentMethod']);
     Route::delete('/settings/bank-names/{id}', [SettingController::class, 'deleteBankName']);
     Route::delete('/settings/order-statuses/{id}', [SettingController::class, 'deleteOrderStatus']);
+    Route::delete('/settings/order-process-statuses/{id}', [SettingController::class, 'deleteOrderProcessStatus']);
     Route::delete('/settings/service-types/{id}', [SettingController::class, 'deleteServiceType']);
     Route::delete('/settings/authentication-statuses/{id}', [SettingController::class, 'deleteAuthenticationStatus']);
     Route::delete('/settings/authorization-statuses/{id}', [SettingController::class, 'deleteAuthorizationStatus']);
@@ -99,6 +103,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reports/order-follow-up', [ReportController::class, 'orderFollowUp']);
     Route::get('/reports/completed-orders', [ReportController::class, 'completedOrders']);
     Route::get('/reports/offices-performance', [ReportController::class, 'officesPerformance']);
-    Route::get('/reports/financial-collections', [ReportController::class, 'financialCollections']);
     Route::get('/reports/employees-performance', [ReportController::class, 'employeesPerformance']);
 });

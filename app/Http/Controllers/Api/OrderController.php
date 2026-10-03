@@ -8,6 +8,8 @@ use App\Http\Requests\UpdateOrderRequest;
 use App\Http\Resources\OrderResource;
 use App\Models\Client;
 use App\Models\Order;
+use App\Models\OrderTracking;
+use App\Support\PermissionAccess;
 use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -16,31 +18,65 @@ class OrderController extends Controller
 {
     public function index(Request $request)
     {
+        $hideDelegateNumbers = PermissionAccess::isHiddenFor($request->user(), PermissionAccess::HIDE_DELEGATE_NUMBERS);
+        $relations = ['client', 'saudiOffice', 'externalOffice', 'employee', 'tracking', 'attachments'];
+        if (! PermissionAccess::isHiddenFor($request->user(), PermissionAccess::HIDE_TRANSACTIONS)) {
+            $relations[] = 'transactions';
+        }
         $orders = Order::query()
-            ->with(['client', 'saudiOffice', 'externalOffice', 'employee', 'tracking', 'transactions', 'attachments'])
-            ->when($request->filled('search'), function ($query) use ($request) {
+            ->with($relations)
+            ->when($request->filled('search'), function ($query) use ($request, $hideDelegateNumbers) {
                 $search = $request->string('search');
-                $query->where(function ($q) use ($search) {
+                $query->where(function ($q) use ($search, $hideDelegateNumbers) {
                     $q->where('id', 'like', "%{$search}%")
                         ->orWhere('visa_holder_name', 'like', "%{$search}%")
                         ->orWhere('visa_holder_phone', 'like', "%{$search}%")
                         ->orWhere('visa_number', 'like', "%{$search}%")
                         ->orWhere('service_type', 'like', "%{$search}%")
                         ->orWhere('id_number', 'like', "%{$search}%")
-                        ->orWhere('sponsor_number', 'like', "%{$search}%")
                         ->orWhere('passport_number', 'like', "%{$search}%")
                         ->orWhere('musaned_contract_number', 'like', "%{$search}%")
-                        ->orWhere('notes', 'like', "%{$search}%")
-                        ->orWhereHas('client', function ($clientQuery) use ($search) {
-                            $clientQuery
-                                ->where('name', 'like', "%{$search}%")
-                                ->orWhere('phone', 'like', "%{$search}%");
-                        });
+                        ->orWhere('notes', 'like', "%{$search}%");
+                    if (! $hideDelegateNumbers) {
+                        $q->orWhere('sponsor_number', 'like', "%{$search}%")
+                            ->orWhereHas('client', function ($clientQuery) use ($search) {
+                                $clientQuery
+                                    ->where('name', 'like', "%{$search}%")
+                                    ->orWhere('phone', 'like', "%{$search}%");
+                            });
+                    } else {
+                        $q->orWhereHas('client', fn($clientQuery) => $clientQuery->where('name', 'like', "%{$search}%"));
+                    }
                 });
             })
             ->when($request->filled('status'), fn($query) => $query->where('status', $request->string('status')))
+            ->when($request->filled('order_status'), fn($query) => $query->where('order_status', $request->string('order_status')))
+            ->when($request->filled('tracking_status'), function ($query) use ($request) {
+                $trackingStatus = $request->input('tracking_status');
+
+                if ($trackingStatus === OrderTracking::WORKFLOW_STATUS_REVIEWED) {
+                    $query->whereHas('tracking', fn($trackingQuery) => $trackingQuery
+                        ->where('workflow_status', $trackingStatus)
+                        ->orWhere(fn($legacyQuery) => $legacyQuery
+                            ->whereNull('workflow_status')
+                            ->where('is_authenticated', true)));
+                } elseif ($trackingStatus === OrderTracking::WORKFLOW_STATUS_CERTIFIED) {
+                    $query->where(fn($completedQuery) => $completedQuery
+                        ->whereHas('tracking', fn($trackingQuery) => $trackingQuery
+                            ->where('workflow_status', $trackingStatus))
+                        ->orWhere('order_status', 'completed')
+                        ->orWhere(fn($legacyQuery) => $legacyQuery
+                            ->whereNull('order_status')
+                            ->whereIn('status', ['completed', 'مكتمل'])));
+                } else {
+                    $query->whereHas(
+                        'tracking',
+                        fn($trackingQuery) => $trackingQuery->where('workflow_status', $trackingStatus)
+                    );
+                }
+            })
             ->when($request->filled('visa_number'), fn($query) => $query->where('visa_number', 'like', '%' . $request->string('visa_number') . '%'))
-            ->when($request->filled('service_type'), fn($query) => $query->where('service_type', 'like', '%' . $request->string('service_type') . '%'))
+            ->when($request->filled('service_type'), fn($query) => $query->where('service_type', $request->input('service_type')))
             ->when($request->filled('id_number'), fn($query) => $query->where('id_number', 'like', '%' . $request->string('id_number') . '%'))
             ->when($request->filled('employee_id'), fn($query) => $query->where('employee_id', $request->integer('employee_id')))
             ->when($request->filled('client_id'), fn($query) => $query->where('client_id', $request->integer('client_id')))
@@ -51,7 +87,7 @@ class OrderController extends Controller
             ->when($request->filled('to_date'), fn($query) => $query->whereDate('created_at', '<=', $request->date('to_date')))
             ->when($request->boolean('without_tracking'), fn($query) => $query->whereDoesntHave('tracking'))
             ->orderBy(
-                in_array($request->input('sort_by'), ['id', 'visa_holder_name', 'visa_holder_phone', 'visa_number', 'service_type', 'id_number', 'musaned_contract_number', 'status', 'total_price', 'musaned_paid', 'created_at', 'contract_date'], true)
+                in_array($request->input('sort_by'), ['id', 'visa_holder_name', 'visa_holder_phone', 'visa_number', 'service_type', 'id_number', 'musaned_contract_number', 'status', 'order_status', 'total_price', 'musaned_paid', 'created_at', 'contract_date'], true)
                     ? $request->input('sort_by')
                     : 'id',
                 $request->input('sort_dir') === 'asc' ? 'asc' : 'desc'
@@ -64,7 +100,11 @@ class OrderController extends Controller
 
     public function show(Order $order)
     {
-        $order->load(['client', 'employee', 'saudiOffice', 'externalOffice', 'tracking', 'transactions', 'attachments']);
+        $relations = ['client', 'employee', 'saudiOffice', 'externalOffice', 'tracking', 'attachments'];
+        if (! PermissionAccess::isHiddenFor(request()->user(), PermissionAccess::HIDE_TRANSACTIONS)) {
+            $relations[] = 'transactions';
+        }
+        $order->load($relations);
         return new OrderResource($order);
     }
 
@@ -178,6 +218,9 @@ class OrderController extends Controller
         }
 
         $data = $request->validated();
+        if (PermissionAccess::isHiddenFor($request->user(), PermissionAccess::HIDE_DELEGATE_NUMBERS)) {
+            unset($data['sponsor_number']);
+        }
         unset($data['attachment_files'], $data['attachment_titles']);
         $order->update($data);
         $this->storeOrderAttachments($order, $request);

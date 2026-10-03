@@ -7,6 +7,7 @@ use App\Http\Requests\StoreClientRequest;
 use App\Http\Requests\UpdateClientRequest;
 use App\Http\Resources\ClientResource;
 use App\Models\Client;
+use App\Support\PermissionAccess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -14,15 +15,23 @@ class ClientController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Client::query()->with(['employee', 'orders', 'orders.tracking', 'orders.transactions', 'transactions']);
+        $hideDelegateNumbers = PermissionAccess::isHiddenFor($request->user(), PermissionAccess::HIDE_DELEGATE_NUMBERS);
+        $hideTransactions = PermissionAccess::isHiddenFor($request->user(), PermissionAccess::HIDE_TRANSACTIONS);
+        $relations = ['employee', 'orders', 'orders.tracking'];
+        if (! $hideTransactions) {
+            $relations = [...$relations, 'orders.transactions', 'transactions'];
+        }
+        $query = Client::query()->with($relations);
 
         if ($request->filled('search')) {
             $search = $request->string('search');
-            $query->where(function ($q) use ($search) {
+            $query->where(function ($q) use ($search, $hideDelegateNumbers) {
                 $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%")
-                    ->orWhere('additional_phone', 'like', "%{$search}%")
                     ->orWhere('city', 'like', "%{$search}%");
+                if (! $hideDelegateNumbers) {
+                    $q->orWhere('phone', 'like', "%{$search}%")
+                        ->orWhere('additional_phone', 'like', "%{$search}%");
+                }
             });
         }
 
@@ -42,7 +51,10 @@ class ClientController extends Controller
             $query->whereDate('created_at', '<=', $request->date('to_date'));
         }
 
-        $allowedSortBy = ['id', 'name', 'phone', 'client_type', 'created_at'];
+        $allowedSortBy = ['id', 'name', 'client_type', 'created_at'];
+        if (! $hideDelegateNumbers) {
+            $allowedSortBy[] = 'phone';
+        }
         $sortBy = in_array($request->input('sort_by'), $allowedSortBy, true)
             ? $request->input('sort_by')
             : 'created_at';
@@ -71,6 +83,9 @@ class ClientController extends Controller
     public function update(UpdateClientRequest $request, Client $client)
     {
         $data = $request->validated();
+        if (PermissionAccess::isHiddenFor($request->user(), PermissionAccess::HIDE_DELEGATE_NUMBERS)) {
+            unset($data['phone'], $data['additional_phone']);
+        }
         $client->update($data);
         return new ClientResource($client->load('employee'));
     }
@@ -90,13 +105,18 @@ class ClientController extends Controller
         $query = $request->query('query');
 
         $clients = Client::with('employee')
-            ->where('phone', 'like', "%{$query}%")
+            ->where(function ($builder) use ($query, $request) {
+                $builder->where('name', 'like', "%{$query}%");
+                if (! PermissionAccess::isHiddenFor($request->user(), PermissionAccess::HIDE_DELEGATE_NUMBERS)) {
+                    $builder->orWhere('phone', 'like', "%{$query}%");
+                }
+            })
             ->limit(10)
             ->get();
 
         return response()->json([
             'success' => true,
-            'data' => $clients,
+            'data' => ClientResource::collection($clients)->resolve($request),
         ]);
     }
 
@@ -117,7 +137,7 @@ class ClientController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Client created successfully',
-            'data' => $client,
+            'data' => (new ClientResource($client))->resolve($request),
         ], 201);
     }
 }

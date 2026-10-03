@@ -6,8 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTransactionRequest;
 use App\Http\Requests\UpdateTransactionRequest;
 use App\Http\Resources\OrderTransactionResource;
-use App\Models\Transaction;
 use App\Models\Order;
+use App\Models\Transaction;
+use App\Support\PaymentMethodClassifier;
 use Illuminate\Http\Request;
 
 class TransactionController extends Controller
@@ -24,8 +25,8 @@ class TransactionController extends Controller
             $orderId = $request->order_id;
             $query->where(function ($q) use ($orderId) {
                 $q->where('order_id', $orderId)
-                    ->orWhere('order_ids', 'like', '%' . $orderId . '%')
-                    ->orWhere('order_ids', 'like', '%"' . $orderId . '"%');
+                    ->orWhere('order_ids', 'like', '%'.$orderId.'%')
+                    ->orWhere('order_ids', 'like', '%"'.$orderId.'"%');
             });
         }
 
@@ -42,7 +43,7 @@ class TransactionController extends Controller
         }
 
         if ($request->has('bank_name') && $request->bank_name) {
-            $query->where('bank_name', 'like', '%' . $request->bank_name . '%');
+            $query->where('bank_name', 'like', '%'.$request->bank_name.'%');
         }
 
         if ($request->has('is_reviewed') && $request->is_reviewed !== '') {
@@ -80,7 +81,7 @@ class TransactionController extends Controller
         $sortDirection = $request->input('sort_direction', 'desc');
 
         $allowedSortFields = ['id', 'amount', 'transfer_date', 'created_at', 'type'];
-        if (!in_array($sortField, $allowedSortFields)) {
+        if (! in_array($sortField, $allowedSortFields)) {
             $sortField = 'id';
         }
 
@@ -96,6 +97,9 @@ class TransactionController extends Controller
         $data = $request->validated();
         if ($request->has('order_ids') && is_array($request->order_ids) && count($request->order_ids) > 0) {
             $data['order_id'] = $request->order_ids[0];
+        }
+        if (! PaymentMethodClassifier::requiresBeneficiaryBank($data['payment_method'] ?? null)) {
+            $data['bank_name'] = null;
         }
         $transaction = Transaction::create($data);
 
@@ -117,6 +121,10 @@ class TransactionController extends Controller
         $data = $request->validated();
         if ($request->has('order_ids') && is_array($request->order_ids) && count($request->order_ids) > 0) {
             $data['order_id'] = $request->order_ids[0];
+        }
+        if (array_key_exists('payment_method', $data)
+            && ! PaymentMethodClassifier::requiresBeneficiaryBank($data['payment_method'])) {
+            $data['bank_name'] = null;
         }
         $transaction->update($data);
 
@@ -144,12 +152,12 @@ class TransactionController extends Controller
 
     private function syncOrderPayments($orderId): void
     {
-        if (!$orderId) {
+        if (! $orderId) {
             return;
         }
 
         $order = Order::find($orderId);
-        if (!$order) {
+        if (! $order) {
             return;
         }
 
@@ -198,11 +206,11 @@ class TransactionController extends Controller
     {
         $clientId = $request->query('client_id');
 
-        if (!$clientId) {
+        if (! $clientId) {
             return response()->json([
                 'success' => false,
                 'message' => 'client_id is required',
-                'data' => []
+                'data' => [],
             ], 400);
         }
 
@@ -213,7 +221,7 @@ class TransactionController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $orders
+            'data' => $orders,
         ]);
     }
 }

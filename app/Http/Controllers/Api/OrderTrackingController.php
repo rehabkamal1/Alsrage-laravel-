@@ -7,17 +7,27 @@ use App\Http\Requests\StoreOrderTrackingRequest;
 use App\Http\Requests\UpdateOrderTrackingRequest;
 use App\Http\Resources\OrderTrackingResource;
 use App\Models\OrderTracking;
+use App\Support\PermissionAccess;
 use Illuminate\Http\Request;
 
 class OrderTrackingController extends Controller
 {
     public function index(Request $request)
     {
-        $query = OrderTracking::with(['order.client', 'order.saudiOffice', 'order.employee', 'saudiOffice', 'externalOffice', 'attachments']);
+        $query = OrderTracking::with([
+            'order.client',
+            'order.saudiOffice',
+            'order.employee',
+            'saudiOffice',
+            'externalOffice',
+            'attachments',
+        ]);
 
         if (!$request->boolean('include_completed')) {
             $query->where('is_authenticated', false);
         }
+
+        $query->whereNull('workflow_status');
 
         if ($request->boolean('without_tracking')) {
             $query->whereDoesntHave('order.tracking');
@@ -73,38 +83,23 @@ class OrderTrackingController extends Controller
             $query->whereDate('created_at', '<=', $request->to_date);
         }
 
-        if ($request->filled('date_range')) {
-            $now = now();
-            switch ($request->date_range) {
-                case 'today':
-                    $query->whereDate('created_at', $now->toDateString());
-                    break;
-                case 'this_week':
-                    $query->whereBetween('created_at', [$now->startOfWeek(), $now->endOfWeek()]);
-                    break;
-                case 'this_month':
-                    $query->whereMonth('created_at', $now->month)
-                        ->whereYear('created_at', $now->year);
-                    break;
-                case 'this_year':
-                    $query->whereYear('created_at', $now->year);
-                    break;
-                default:
-                    break;
-            }
-        }
-
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->whereHas('order', function ($q) use ($search) {
+            $hideDelegateNumbers = PermissionAccess::isHiddenFor(
+                $request->user(),
+                PermissionAccess::HIDE_DELEGATE_NUMBERS
+            );
+            $query->whereHas('order', function ($q) use ($search, $hideDelegateNumbers) {
                 $q->where('id', 'like', "%{$search}%")
                     ->orWhere('visa_number', 'like', "%{$search}%")
-                    ->orWhere('sponsor_number', 'like', "%{$search}%")
                     ->orWhere('visa_holder_name', 'like', "%{$search}%")
                     ->orWhereHas('client', function ($cq) use ($search) {
                         $cq->where('visa_holder_name', 'like', "%{$search}%")
                             ->orWhere('passport_number', 'like', "%{$search}%");
                     });
+                if (!$hideDelegateNumbers) {
+                    $q->orWhere('sponsor_number', 'like', "%{$search}%");
+                }
             });
         }
 
@@ -112,7 +107,9 @@ class OrderTrackingController extends Controller
         $sortDirection = $request->input('sort_direction', 'desc');
         $query->orderBy($sortField, $sortDirection);
 
-        $tracking = $query->paginate((int) $request->integer('per_page', 15))->withQueryString();
+        $tracking = $query
+            ->paginate((int) $request->integer('per_page', 15))
+            ->withQueryString();
 
         return OrderTrackingResource::collection($tracking);
     }
@@ -123,15 +120,11 @@ class OrderTrackingController extends Controller
         if ($existingTracking) {
             return response()->json([
                 'message' => 'هذا الطلب لديه تتبع موجود بالفعل.',
-                'data' => new OrderTrackingResource($existingTracking)
+                'data' => new OrderTrackingResource($existingTracking),
             ], 409);
         }
 
         $tracking = OrderTracking::create($request->validated());
-
-        if ($tracking->is_authenticated) {
-            $tracking->order()->update(['status' => 'completed']);
-        }
 
         return (new OrderTrackingResource($tracking))
             ->response()
@@ -140,16 +133,25 @@ class OrderTrackingController extends Controller
 
     public function show(OrderTracking $orderTracking)
     {
-        return new OrderTrackingResource($orderTracking->load(['order.client', 'order.saudiOffice', 'order.employee', 'saudiOffice', 'externalOffice', 'attachments']));
+        return new OrderTrackingResource($orderTracking->load([
+            'order.client',
+            'order.saudiOffice',
+            'order.employee',
+            'saudiOffice',
+            'externalOffice',
+            'attachments',
+        ]));
     }
 
     public function update(UpdateOrderTrackingRequest $request, OrderTracking $orderTracking)
     {
-        $orderTracking->update($request->validated());
+        $data = $request->validated();
 
-        if ($orderTracking->is_authenticated) {
-            $orderTracking->order()->update(['status' => 'completed']);
+        if (PermissionAccess::isHiddenFor($request->user(), PermissionAccess::HIDE_DELEGATE_NUMBERS)) {
+            unset($data['delegate_phone'], $data['sponsor_number']);
         }
+
+        $orderTracking->update($data);
 
         return new OrderTrackingResource($orderTracking);
     }

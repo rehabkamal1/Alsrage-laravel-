@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Support\PermissionAccess;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -431,6 +432,7 @@ class ReportController extends Controller
     public function financialCollections(Request $request)
     {
         Order::checkAwaitingMusanedTransferTimeouts();
+        $hideDelegateNumbers = PermissionAccess::isHiddenFor($request->user(), PermissionAccess::HIDE_DELEGATE_NUMBERS);
 
         $query = Order::with(['client', 'employee.saudiOffice', 'saudiOffice', 'externalOffice', 'transactions']);
 
@@ -477,15 +479,17 @@ class ReportController extends Controller
         }
         if ($request->filled('search')) {
             $s = $request->search;
-            $query->where(function($q) use ($s) {
+            $query->where(function ($q) use ($s, $hideDelegateNumbers) {
                 $q->where('id', 'like', "%{$s}%")
                   ->orWhere('visa_number', 'like', "%{$s}%")
                   ->orWhere('visa_holder_name', 'like', "%{$s}%")
-                  ->orWhereHas('client', function($cq) use ($s) {
-                      $cq->where('name', 'like', "%{$s}%")
-                         ->orWhere('phone', 'like', "%{$s}%");
+                  ->orWhereHas('client', function ($cq) use ($s, $hideDelegateNumbers) {
+                      $cq->where('name', 'like', "%{$s}%");
+                      if (! $hideDelegateNumbers) {
+                          $cq->orWhere('phone', 'like', "%{$s}%");
+                      }
                   })
-                  ->orWhereHas('employee', function($eq) use ($s) {
+                  ->orWhereHas('employee', function ($eq) use ($s) {
                       $eq->where('name', 'like', "%{$s}%");
                   });
             });
@@ -505,7 +509,7 @@ class ReportController extends Controller
         $totalCollected = 0;
         $totalOutstanding = 0;
 
-        $financialOrders = $orders->map(function ($order) use (&$totalContractValue, &$totalCollected, &$totalOutstanding, $statusLabelMap, $statusColorMap) {
+        $financialOrders = $orders->map(function ($order) use (&$totalContractValue, &$totalCollected, &$totalOutstanding, $statusLabelMap, $statusColorMap, $hideDelegateNumbers) {
             $price = (float) ($order->total_price ?? 0);
             $paid = (float) ($order->musaned_paid ?? 0);
             $remaining = max(0, $price - $paid);
@@ -533,7 +537,9 @@ class ReportController extends Controller
                 'visa_number' => $order->visa_number ?: '-',
                 'client_id' => $order->client_id,
                 'client_name' => $order->client ? $order->client->name : ($order->visa_holder_name ?: '-'),
-                'client_phone' => $order->client ? $order->client->phone : ($order->visa_holder_phone ?: '-'),
+                'client_phone' => $hideDelegateNumbers
+                    ? null
+                    : ($order->client ? $order->client->phone : ($order->visa_holder_phone ?: '-')),
                 'saudi_office_id' => $order->saudi_office_id,
                 'saudi_office_name' => $order->saudiOffice ? $order->saudiOffice->name : '-',
                 'external_office_id' => $order->external_office_id,
@@ -665,7 +671,14 @@ class ReportController extends Controller
             'orders' => $financialOrders,
             'clients_summary' => $clientsSummary,
             'marketers_summary' => $marketersSummary,
-            'clients' => \App\Models\Client::select('id', 'name', 'phone')->orderBy('name')->get(),
+            'clients' => \App\Models\Client::select('id', 'name', 'phone')
+                ->orderBy('name')
+                ->get()
+                ->map(fn($client) => [
+                    'id' => $client->id,
+                    'name' => $client->name,
+                    'phone' => $hideDelegateNumbers ? null : $client->phone,
+                ]),
             'employees' => \App\Models\Employee::select('id', 'name', 'username')
                 ->orderBy('name')
                 ->get()

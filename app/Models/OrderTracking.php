@@ -8,8 +8,18 @@ class OrderTracking extends Model
 {
     protected $table = 'order_tracking';
 
+    public const WORKFLOW_STATUS_REVIEWED = 'reviewed';
+
+    public const WORKFLOW_STATUS_CERTIFIED = 'certified';
+
+    public const WORKFLOW_STATUSES = [
+        self::WORKFLOW_STATUS_REVIEWED,
+        self::WORKFLOW_STATUS_CERTIFIED,
+    ];
+
     protected $fillable = [
         'order_id',
+        'workflow_status',
         'external_office_id',
         'saudi_office_id',
         'is_authenticated',

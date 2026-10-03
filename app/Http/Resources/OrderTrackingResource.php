@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\PermissionAccess;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -12,6 +13,7 @@ class OrderTrackingResource extends JsonResource
         return [
             'id' => $this->id,
             'order_id' => $this->order_id,
+            'workflow_status' => $this->workflow_status,
             'order_number' => $this->order?->id,
             'saudi_office_id' => $this->saudi_office_id ?? $this->order?->saudi_office_id,
             'saudi_office_name' => $this->saudiOffice?->name ?? $this->order?->saudiOffice?->name,
@@ -22,8 +24,12 @@ class OrderTrackingResource extends JsonResource
             'visa_number' => $this->order?->visa_number,
             'id_number' => $this->order?->id_number ?? $this->order?->client?->id_number,
             'passport_number' => $this->order?->passport_number ?? $this->order?->client?->passport_number,
-            'sponsor_number' => $this->sponsor_number,
-            'delegate_phone' => $this->delegate_phone ?? $this->order?->client?->phone ?? $this->sponsor_number,
+            'sponsor_number' => PermissionAccess::isHiddenFor($request->user(), PermissionAccess::HIDE_DELEGATE_NUMBERS)
+                ? null
+                : $this->sponsor_number,
+            'delegate_phone' => PermissionAccess::isHiddenFor($request->user(), PermissionAccess::HIDE_DELEGATE_NUMBERS)
+                ? null
+                : ($this->delegate_phone ?? $this->order?->client?->phone ?? $this->sponsor_number),
             'authorization_number' => $this->authorization_number,
             'is_authenticated' => $this->is_authenticated,
             'authentication_date' => $this->authentication_date,

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\PermissionAccess;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -29,7 +30,9 @@ class OrderResource extends JsonResource
             'arrival_destination' => $this->arrival_destination,
             'profession' => $this->profession,
             'id_number' => $this->id_number,
-            'sponsor_number' => $this->sponsor_number,
+            'sponsor_number' => PermissionAccess::isHiddenFor($request->user(), PermissionAccess::HIDE_DELEGATE_NUMBERS)
+                ? null
+                : $this->sponsor_number,
             'passport_number' => $this->passport_number,
             'birth_date' => $this->birth_date,
             'musaned_contract_number' => $this->musaned_contract_number,
@@ -44,9 +47,12 @@ class OrderResource extends JsonResource
             'visa_image' => $this->visa_image,
             'contract_image' => $this->contract_image,
             'status' => $this->status,
+            'order_status' => $this->order_status,
             'notes' => $this->notes,
             'tracking' => new OrderTrackingResource($this->tracking),
-            'transactions' => OrderTransactionResource::collection($this->transactions),
+            'transactions' => PermissionAccess::isHiddenFor($request->user(), PermissionAccess::HIDE_TRANSACTIONS)
+                ? []
+                : OrderTransactionResource::collection($this->transactions),
             'attachments' => AttachmentResource::collection($this->attachments),
             'has_tracking' => $this->tracking()->exists(),
             'created_at' => $this->created_at,

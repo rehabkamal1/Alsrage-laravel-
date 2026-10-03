@@ -45,6 +45,14 @@ class StoreOrderRequest extends FormRequest
             'attachment_files' => ['nullable', 'array'],
             'attachment_files.*' => ['nullable', 'file', 'mimes:jpeg,png,jpg,gif,pdf', 'max:5120'],
             'status' => ['nullable', 'string', 'max:100'],
+            'order_status' => [
+                'nullable',
+                'string',
+                'max:100',
+                \Illuminate\Validation\Rule::exists('settings', 'key')
+                    ->where('group', 'order_process_status')
+                    ->where('is_active', true),
+            ],
         ];
     }
 

@@ -74,6 +74,15 @@ class SettingController extends Controller
         return response()->json(['data' => $statuses]);
     }
 
+    public function getOrderProcessStatuses()
+    {
+        $statuses = Setting::where('group', 'order_process_status')
+            ->orderBy('sort_order')
+            ->get(['id', 'key', 'label', 'color', 'sort_order', 'is_active']);
+
+        return response()->json(['data' => $statuses]);
+    }
+
     public function getAuthenticationStatuses()
     {
         $statuses = Setting::where('group', 'authentication_status')
@@ -207,6 +216,32 @@ class SettingController extends Controller
         return response()->json(['message' => 'تم حفظ حالات الطلبات بنجاح']);
     }
 
+    public function updateOrderProcessStatuses(Request $request)
+    {
+        $validated = $request->validate([
+            'statuses' => ['required', 'array'],
+            'statuses.*.key' => ['required', 'string', 'max:255'],
+            'statuses.*.label' => ['required', 'string', 'max:255'],
+            'statuses.*.color' => ['nullable', 'string', 'max:20'],
+            'statuses.*.sort_order' => ['nullable', 'integer'],
+            'statuses.*.is_active' => ['sometimes', 'boolean'],
+        ]);
+
+        foreach ($validated['statuses'] as $status) {
+            Setting::updateOrCreate(
+                ['group' => 'order_process_status', 'key' => $status['key']],
+                [
+                    'label' => $status['label'],
+                    'color' => $status['color'] ?? '#6c757d',
+                    'sort_order' => $status['sort_order'] ?? 0,
+                    'is_active' => $status['is_active'] ?? true,
+                ]
+            );
+        }
+
+        return response()->json(['message' => 'تم حفظ حالات الطلب بنجاح']);
+    }
+
     public function deletePriorityLevel(int $id)
     {
         $setting = Setting::where('group', 'priority_level')->find($id);
@@ -317,6 +352,16 @@ class SettingController extends Controller
     public function deleteOrderStatus(int $id)
     {
         $setting = Setting::where('group', 'order_status')->find($id);
+        if (!$setting) {
+            return response()->json(['message' => 'العنصر غير موجود'], 404);
+        }
+        $setting->delete();
+        return response()->json(['message' => 'تم الحذف بنجاح']);
+    }
+
+    public function deleteOrderProcessStatus(int $id)
+    {
+        $setting = Setting::where('group', 'order_process_status')->find($id);
         if (!$setting) {
             return response()->json(['message' => 'العنصر غير موجود'], 404);
         }

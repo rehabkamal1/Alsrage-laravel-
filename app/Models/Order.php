@@ -34,6 +34,7 @@ class Order extends Model
         'visa_image',
         'contract_image',
         'status',
+        'order_status',
         'notes',
     ];
 
