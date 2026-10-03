@@ -28,7 +28,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('saudi-offices', SaudiOfficeController::class);
     Route::apiResource('external-offices', ExternalOfficeController::class);
     Route::apiResource('employees', EmployeeController::class);
-    Route::apiResource('orders', OrderController::class)->except('show');
+    Route::apiResource('orders', OrderController::class);
     Route::get('/orders/without-tracking', [OrderController::class, 'getOrdersWithoutTracking']);
     Route::apiResource('order-tracking', OrderTrackingController::class);
 

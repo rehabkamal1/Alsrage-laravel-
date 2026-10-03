@@ -62,6 +62,12 @@ class OrderController extends Controller
         return OrderResource::collection($orders);
     }
 
+    public function show(Order $order)
+    {
+        $order->load(['client', 'employee', 'saudiOffice', 'externalOffice', 'tracking', 'transactions', 'attachments']);
+        return new OrderResource($order);
+    }
+
     public function store(StoreOrderRequest $request)
     {
         if ($request->filled('nationality')) {
