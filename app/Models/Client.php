@@ -10,11 +10,16 @@ class Client extends Model
     protected $fillable = [
         'name',
         'client_type',
+        'opening_balance',
         'employee_id',
         'phone',
         'additional_phone',
         'city',
         'address',
+    ];
+
+    protected $casts = [
+        'opening_balance' => 'decimal:2',
     ];
 
     public function employee()

@@ -741,14 +741,25 @@ class ReportController extends Controller
         });
 
         // Grouping for Clients Summary
+        $clientIds = $orders->pluck('client_id')->filter()->unique();
+        if ($request->filled('client_id')) {
+            $clientIds->push((int) $request->client_id);
+            $clientIds = $clientIds->unique();
+        }
+        $clientsWithBalance = \App\Models\Client::whereIn('id', $clientIds)
+            ->pluck('opening_balance', 'id')
+            ->toArray();
+
         $clientsMap = [];
         foreach ($financialOrders as $ord) {
             $cKey = $ord['client_id'] ? 'id_' . $ord['client_id'] : 'name_' . $ord['client_name'];
             if (!isset($clientsMap[$cKey])) {
+                $cOpening = (float) ($ord['client_id'] ? ($clientsWithBalance[$ord['client_id']] ?? 0) : 0);
                 $clientsMap[$cKey] = [
                     'client_id' => $ord['client_id'],
                     'client_name' => $ord['client_name'],
                     'client_phone' => $ord['client_phone'],
+                    'opening_balance' => $cOpening,
                     'orders_count' => 0,
                     'total_contract_value' => 0,
                     'total_collected' => 0,
@@ -759,21 +770,50 @@ class ReportController extends Controller
             $clientsMap[$cKey]['orders_count']++;
             $clientsMap[$cKey]['total_contract_value'] += $ord['total_price'];
             $clientsMap[$cKey]['total_collected'] += $ord['paid_amount'];
-            $clientsMap[$cKey]['total_outstanding'] += $ord['remaining_amount'];
             $clientsMap[$cKey]['orders'][] = $ord;
+        }
+
+        // If a specific client is requested, ensure they appear in clientsMap even if they have 0 matching orders
+        if ($request->filled('client_id')) {
+            $cId = (int) $request->client_id;
+            $cKey = 'id_' . $cId;
+            if (!isset($clientsMap[$cKey])) {
+                $cModel = \App\Models\Client::find($cId);
+                if ($cModel) {
+                    $openingBal = (float) ($cModel->opening_balance ?? 0);
+                    $clientsMap[$cKey] = [
+                        'client_id' => $cModel->id,
+                        'client_name' => $cModel->name,
+                        'client_phone' => $hideDelegateNumbers ? null : $cModel->phone,
+                        'opening_balance' => $openingBal,
+                        'orders_count' => 0,
+                        'total_contract_value' => 0,
+                        'total_collected' => 0,
+                        'total_outstanding' => $openingBal,
+                        'orders' => [],
+                    ];
+                }
+            }
         }
 
         $clientsSummary = array_values(array_map(function ($c) {
             $cPrice = $c['total_contract_value'];
+            $cOpening = $c['opening_balance'] ?? 0;
+            $cDue = $cPrice + $cOpening;
             $cPaid = $c['total_collected'];
+            $cRemaining = max(0, $cDue - $cPaid);
+
+            $c['total_due'] = $cDue;
+            $c['total_outstanding'] = $cRemaining;
+
             $cStatus = "غير محصل";
-            if ($cPaid >= $cPrice && $cPrice > 0) {
+            if ($cPaid >= $cDue && $cDue > 0) {
                 $cStatus = "محصل بالكامل";
             } else if ($cPaid > 0) {
                 $cStatus = "محصل جزئياً";
             }
             $c['payment_status'] = $cStatus;
-            $c['collection_rate'] = $cPrice > 0 ? round(($cPaid / $cPrice) * 100, 1) : 0;
+            $c['collection_rate'] = $cDue > 0 ? round(($cPaid / $cDue) * 100, 1) : 0;
             return $c;
         }, $clientsMap));
 
@@ -802,10 +842,12 @@ class ReportController extends Controller
 
             $cSubKey = $ord['client_id'] ? 'id_' . $ord['client_id'] : 'name_' . $ord['client_name'];
             if (!isset($marketersMap[$mKey]['clients_map'][$cSubKey])) {
+                $cSubOpening = (float) ($ord['client_id'] ? ($clientsWithBalance[$ord['client_id']] ?? 0) : 0);
                 $marketersMap[$mKey]['clients_map'][$cSubKey] = [
                     'client_id' => $ord['client_id'],
                     'client_name' => $ord['client_name'],
                     'client_phone' => $ord['client_phone'],
+                    'opening_balance' => $cSubOpening,
                     'orders_count' => 0,
                     'total_contract_value' => 0,
                     'total_collected' => 0,
@@ -832,10 +874,38 @@ class ReportController extends Controller
             $m['payment_status'] = $mStatus;
             $m['collection_rate'] = $mPrice > 0 ? round(($mPaid / $mPrice) * 100, 1) : 0;
             $m['clients_count'] = count($m['clients_map']);
-            $m['clients'] = array_values($m['clients_map']);
+
+            // Enrich marketer client maps with opening balance & total due
+            $mClients = array_values(array_map(function($cSub) {
+                $cSubPrice = $cSub['total_contract_value'];
+                $cSubOpening = $cSub['opening_balance'] ?? 0;
+                $cSubDue = $cSubPrice + $cSubOpening;
+                $cSubPaid = $cSub['total_collected'];
+                $cSub['total_due'] = $cSubDue;
+                $cSub['total_outstanding'] = max(0, $cSubDue - $cSubPaid);
+                $cSubStatus = "غير محصل";
+                if ($cSubPaid >= $cSubDue && $cSubDue > 0) {
+                    $cSubStatus = "محصل بالكامل";
+                } else if ($cSubPaid > 0) {
+                    $cSubStatus = "محصل جزئياً";
+                }
+                $cSub['payment_status'] = $cSubStatus;
+                $cSub['collection_rate'] = $cSubDue > 0 ? round(($cSubPaid / $cSubDue) * 100, 1) : 0;
+                return $cSub;
+            }, $m['clients_map']));
+
+            $m['clients'] = $mClients;
             unset($m['clients_map']);
             return $m;
         }, $marketersMap));
+
+        if ($request->filled('client_id')) {
+            $cId = (int) $request->client_id;
+            $cModel = \App\Models\Client::find($cId);
+            $cOpening = $cModel ? (float) ($cModel->opening_balance ?? 0) : 0;
+            $totalContractValue += $cOpening;
+            $totalOutstanding = max(0, $totalContractValue - $totalCollected);
+        }
 
         $collectionRate = $totalContractValue > 0 ? round(($totalCollected / $totalContractValue) * 100, 1) : 0;
 
@@ -852,13 +922,14 @@ class ReportController extends Controller
             'orders' => $financialOrders,
             'clients_summary' => $clientsSummary,
             'marketers_summary' => $marketersSummary,
-            'clients' => \App\Models\Client::select('id', 'name', 'phone')
+            'clients' => \App\Models\Client::select('id', 'name', 'phone', 'opening_balance')
                 ->orderBy('name')
                 ->get()
                 ->map(fn($client) => [
                     'id' => $client->id,
                     'name' => $client->name,
                     'phone' => $hideDelegateNumbers ? null : $client->phone,
+                    'opening_balance' => (float) ($client->opening_balance ?? 0),
                 ]),
             'employees' => \App\Models\Employee::select('id', 'name', 'username')
                 ->orderBy('name')

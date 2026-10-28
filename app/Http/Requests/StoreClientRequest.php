@@ -16,6 +16,7 @@ class StoreClientRequest extends FormRequest
         return [
             'name' => 'required|string|max:255',
             'client_type' => 'required|string|max:255',
+            'opening_balance' => 'nullable|numeric|min:0',
             'employee_id' => 'nullable|exists:employees,id',
             'phone' => 'required|string|max:20|unique:clients,phone',
             'additional_phone' => 'nullable|string|max:20',

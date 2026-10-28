@@ -20,6 +20,7 @@ class UpdateClientRequest extends FormRequest
         return [
             'name' => 'sometimes|required|string|max:255',
             'client_type' => 'sometimes|string|max:255',
+            'opening_balance' => 'nullable|numeric|min:0',
             'employee_id' => 'nullable|exists:employees,id',
             'phone' => [
                 'sometimes',

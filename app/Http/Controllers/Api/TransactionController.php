@@ -214,6 +214,8 @@ class TransactionController extends Controller
             ], 400);
         }
 
+        $client = \App\Models\Client::find($clientId);
+
         $orders = Order::where('client_id', $clientId)
             ->with(['client', 'saudiOffice', 'externalOffice'])
             ->orderBy('id', 'desc')
@@ -221,6 +223,11 @@ class TransactionController extends Controller
 
         return response()->json([
             'success' => true,
+            'client' => $client ? [
+                'id' => $client->id,
+                'name' => $client->name,
+                'opening_balance' => (float) ($client->opening_balance ?? 0),
+            ] : null,
             'data' => $orders,
         ]);
     }

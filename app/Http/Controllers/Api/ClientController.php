@@ -51,7 +51,7 @@ class ClientController extends Controller
             $query->whereDate('created_at', '<=', $request->date('to_date'));
         }
 
-        $allowedSortBy = ['id', 'name', 'client_type', 'created_at'];
+        $allowedSortBy = ['id', 'name', 'client_type', 'opening_balance', 'created_at'];
         if (! $hideDelegateNumbers) {
             $allowedSortBy[] = 'phone';
         }

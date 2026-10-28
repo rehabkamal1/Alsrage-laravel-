@@ -14,6 +14,7 @@ class ClientResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'client_type' => $this->client_type,
+            'opening_balance' => (float) ($this->opening_balance ?? 0),
             'employee_id' => $this->employee_id,
             'employee' => $this->whenLoaded('employee'),
             'phone' => PermissionAccess::isHiddenFor($request->user(), PermissionAccess::HIDE_DELEGATE_NUMBERS)
