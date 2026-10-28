@@ -38,6 +38,37 @@ class ReportController extends Controller
             // Only active orders for follow up when no specific status is selected
             $query->whereNotIn('status', ['completed', 'cancelled', 'مكتمل', 'ملغي']);
         }
+        // Parse multi-select authentication status filter
+        $authStatusesFilter = [];
+        if ($request->filled('authentication_statuses')) {
+            $authStatusesFilter = is_array($request->authentication_statuses) 
+                ? $request->authentication_statuses 
+                : array_filter(explode(',', $request->authentication_statuses));
+        } elseif ($request->filled('authentication_status')) {
+            $authStatusesFilter = is_array($request->authentication_status) 
+                ? $request->authentication_status 
+                : array_filter(explode(',', $request->authentication_status));
+        }
+
+        if (!empty($authStatusesFilter)) {
+            $allAuthSettings = \App\Models\Setting::where('group', 'authentication_status')->get();
+            $resolvedAuthValues = [];
+            foreach ($authStatusesFilter as $asVal) {
+                $resolvedAuthValues[] = $asVal;
+                $stObj = $allAuthSettings->first(function ($item) use ($asVal) {
+                    return $item->key === $asVal || $item->label === $asVal;
+                });
+                if ($stObj) {
+                    if (!empty($stObj->key)) $resolvedAuthValues[] = $stObj->key;
+                    if (!empty($stObj->label)) $resolvedAuthValues[] = $stObj->label;
+                }
+            }
+            $resolvedAuthValues = array_values(array_unique(array_filter($resolvedAuthValues)));
+
+            $query->whereHas('tracking', function ($q) use ($resolvedAuthValues) {
+                $q->whereIn('authentication_status', $resolvedAuthValues);
+            });
+        }
 
         $orders = $query->get();
 
@@ -54,6 +85,18 @@ class ReportController extends Controller
             })
             ->toArray();
 
+        $authSettings = \App\Models\Setting::where('group', 'authentication_status')->get();
+        $authLabelMap = $authSettings
+            ->mapWithKeys(function ($item) {
+                return [$item->key => $item->label];
+            })
+            ->toArray();
+        $authColorMap = $authSettings
+            ->mapWithKeys(function ($item) {
+                return [$item->key => $item->color ?: '#0284c7', $item->label => $item->color ?: '#0284c7'];
+            })
+            ->toArray();
+
         $now = Carbon::now();
 
         $totalLate = 0;
@@ -61,7 +104,7 @@ class ReportController extends Controller
         $exceededSla = 0;
         $totalDelayDays = 0;
 
-        $processedOrders = $orders->map(function ($order) use ($statusSettingsMap, $statusLabelMap, $now, &$totalLate, &$withoutFollowup, &$exceededSla, &$totalDelayDays) {
+        $processedOrders = $orders->map(function ($order) use ($statusSettingsMap, $statusLabelMap, $authLabelMap, $authColorMap, $now, &$totalLate, &$withoutFollowup, &$exceededSla, &$totalDelayDays) {
             $startDate = $order->contract_date ? Carbon::parse($order->contract_date) : $order->created_at;
             $daysSinceStart = (int) $startDate->diffInDays($now);
             
@@ -82,6 +125,9 @@ class ReportController extends Controller
             }
 
             $statusLabel = $statusLabelMap[$order->status] ?? $order->status;
+            $rawAuth = $order->tracking ? $order->tracking->authentication_status : null;
+            $authLabel = $rawAuth ? ($authLabelMap[$rawAuth] ?? $rawAuth) : null;
+            $authColor = $rawAuth ? ($authColorMap[$rawAuth] ?? ($authColorMap[$authLabel] ?? '#0284c7')) : null;
 
             return [
                 'id' => $order->id,
@@ -99,6 +145,9 @@ class ReportController extends Controller
                 ],
                 'status_name' => $statusLabel ?: 'غير محدد',
                 'raw_status' => $order->status,
+                'authentication_status' => $authLabel,
+                'raw_authentication_status' => $rawAuth,
+                'authentication_status_color' => $authColor,
                 'last_update_date' => $order->tracking && $order->tracking->last_action_date ? $order->tracking->last_action_date->format('Y-m-d') : '-',
                 'delay_days' => $delayDays,
                 'exceeded_sla' => $isLate,
@@ -111,6 +160,24 @@ class ReportController extends Controller
         $totalOrders = $orders->count();
         $withinSla = max(0, $totalOrders - $exceededSla);
 
+        // Count authentication statuses across all orders in the report
+        $authCountsMap = [];
+        foreach ($processedOrders as $po) {
+            $al = $po['authentication_status'];
+            if ($al && $al !== '-') {
+                $authCountsMap[$al] = ($authCountsMap[$al] ?? 0) + 1;
+            }
+        }
+        $authStatusesList = [];
+        foreach ($authSettings as $ast) {
+            $authStatusesList[] = [
+                'key' => $ast->key,
+                'label' => $ast->label,
+                'color' => $ast->color ?: '#0284c7',
+                'count' => $authCountsMap[$ast->label] ?? ($authCountsMap[$ast->key] ?? 0),
+            ];
+        }
+
         return response()->json([
             'kpis' => [
                 'total_orders' => $totalOrders,
@@ -121,6 +188,7 @@ class ReportController extends Controller
                 'avg_delay_days' => $avgDelayDays,
             ],
             'orders' => $processedOrders,
+            'authentication_statuses' => $authStatusesList,
         ]);
     }
 
@@ -217,6 +285,30 @@ class ReportController extends Controller
             $statusesFilter = is_array($request->status) ? $request->status : array_filter(explode(',', $request->status));
         }
 
+        // Parse authentication status filter (comma separated string or array)
+        $authStatusesFilter = [];
+        if ($request->filled('authentication_status')) {
+            $authStatusesFilter = is_array($request->authentication_status) ? $request->authentication_status : array_filter(explode(',', $request->authentication_status));
+        } elseif ($request->filled('authentication_statuses')) {
+            $authStatusesFilter = is_array($request->authentication_statuses) ? $request->authentication_statuses : array_filter(explode(',', $request->authentication_statuses));
+        }
+
+        $resolvedAuthValues = [];
+        if (!empty($authStatusesFilter)) {
+            $authSettingsAll = \App\Models\Setting::where('group', 'authentication_status')->get();
+            foreach ($authStatusesFilter as $asVal) {
+                $resolvedAuthValues[] = $asVal;
+                $stObj = $authSettingsAll->first(function ($item) use ($asVal) {
+                    return $item->key === $asVal || $item->label === $asVal;
+                });
+                if ($stObj) {
+                    if (!empty($stObj->key)) $resolvedAuthValues[] = $stObj->key;
+                    if (!empty($stObj->label)) $resolvedAuthValues[] = $stObj->label;
+                }
+            }
+            $resolvedAuthValues = array_values(array_unique(array_filter($resolvedAuthValues)));
+        }
+
         // Retrieve configured order statuses from settings to map colors & labels
         $configuredStatuses = \App\Models\Setting::where('group', 'order_status')
             ->orderBy('sort_order')
@@ -230,6 +322,20 @@ class ReportController extends Controller
             $statusColorMap[$st->label] = $st->color ?: '#6c757d';
             $statusLabelMap[$st->key] = $st->label;
             $statusLabelMap[$st->label] = $st->label;
+        }
+
+        // Retrieve configured authentication statuses from settings
+        $configuredAuthStatuses = \App\Models\Setting::where('group', 'authentication_status')
+            ->orderBy('sort_order')
+            ->get(['key', 'label', 'color']);
+
+        $authStatusColorMap = [];
+        $authStatusLabelMap = [];
+        foreach ($configuredAuthStatuses as $ast) {
+            $authStatusColorMap[$ast->key] = $ast->color ?: '#0284c7';
+            $authStatusColorMap[$ast->label] = $ast->color ?: '#0284c7';
+            $authStatusLabelMap[$ast->key] = $ast->label;
+            $authStatusLabelMap[$ast->label] = $ast->label;
         }
 
         // Fetch distinct available countries and cities for filters
@@ -247,10 +353,11 @@ class ReportController extends Controller
 
         // Accumulator for overall status counts across all offices
         $globalStatusCounts = [];
+        $globalAuthStatusCounts = [];
 
-        $processOfficeOrders = function ($officeQuery, $isSaudi = true) use ($dateFrom, $dateTo, $saudiOfficeId, $externalOfficeId, $statusesFilter, $statusColorMap, $statusLabelMap, &$globalStatusCounts) {
-            return $officeQuery->get()->map(function ($office) use ($isSaudi, $dateFrom, $dateTo, $saudiOfficeId, $externalOfficeId, $statusesFilter, $statusColorMap, $statusLabelMap, &$globalStatusCounts) {
-                $ordersQuery = $office->orders()->with(['client', 'employee']);
+        $processOfficeOrders = function ($officeQuery, $isSaudi = true) use ($dateFrom, $dateTo, $saudiOfficeId, $externalOfficeId, $statusesFilter, $statusColorMap, $statusLabelMap, $resolvedAuthValues, $authStatusColorMap, $authStatusLabelMap, &$globalStatusCounts, &$globalAuthStatusCounts) {
+            return $officeQuery->get()->map(function ($office) use ($isSaudi, $dateFrom, $dateTo, $saudiOfficeId, $externalOfficeId, $statusesFilter, $statusColorMap, $statusLabelMap, $resolvedAuthValues, $authStatusColorMap, $authStatusLabelMap, &$globalStatusCounts, &$globalAuthStatusCounts) {
+                $ordersQuery = $office->orders()->with(['client', 'employee', 'tracking']);
 
                 if (!empty($dateFrom)) {
                     $ordersQuery->whereDate('created_at', '>=', $dateFrom);
@@ -263,6 +370,11 @@ class ReportController extends Controller
                 }
                 if (!$isSaudi && !empty($saudiOfficeId)) {
                     $ordersQuery->where('saudi_office_id', $saudiOfficeId);
+                }
+                if (!empty($resolvedAuthValues)) {
+                    $ordersQuery->whereHas('tracking', function ($q) use ($resolvedAuthValues) {
+                        $q->whereIn('authentication_status', $resolvedAuthValues);
+                    });
                 }
                 if (!empty($statusesFilter)) {
                     $ordersQuery->where(function($q) use ($statusesFilter) {
@@ -297,10 +409,14 @@ class ReportController extends Controller
                 // Status breakdown per office
                 $statusCountsMap = [];
 
-                $ordersDetails = $orders->map(function ($order) use ($statusColorMap, $statusLabelMap, &$statusCountsMap, &$globalStatusCounts) {
+                $ordersDetails = $orders->map(function ($order) use ($statusColorMap, $statusLabelMap, $authStatusColorMap, $authStatusLabelMap, &$statusCountsMap, &$globalStatusCounts, &$globalAuthStatusCounts) {
                     $rawStatus = $order->status ?: 'غير محدد';
                     $statusLabel = $statusLabelMap[$rawStatus] ?? $rawStatus;
                     $statusColor = $statusColorMap[$rawStatus] ?? ($statusColorMap[$statusLabel] ?? '#6c757d');
+
+                    $rawAuth = $order->tracking ? $order->tracking->authentication_status : null;
+                    $authLabel = $rawAuth ? ($authStatusLabelMap[$rawAuth] ?? $rawAuth) : '-';
+                    $authColor = $rawAuth ? ($authStatusColorMap[$rawAuth] ?? ($authStatusColorMap[$authLabel] ?? '#0284c7')) : '#6c757d';
 
                     if (!isset($statusCountsMap[$statusLabel])) {
                         $statusCountsMap[$statusLabel] = [
@@ -322,6 +438,18 @@ class ReportController extends Controller
                     }
                     $globalStatusCounts[$statusLabel]['count']++;
 
+                    if ($authLabel && $authLabel !== '-') {
+                        if (!isset($globalAuthStatusCounts[$authLabel])) {
+                            $globalAuthStatusCounts[$authLabel] = [
+                                'key' => $rawAuth,
+                                'label' => $authLabel,
+                                'color' => $authColor,
+                                'count' => 0
+                            ];
+                        }
+                        $globalAuthStatusCounts[$authLabel]['count']++;
+                    }
+
                     return [
                         'id' => $order->id,
                         'visa_number' => $order->visa_number ?: '-',
@@ -332,6 +460,9 @@ class ReportController extends Controller
                         'status' => $statusLabel,
                         'status_raw' => $rawStatus,
                         'status_color' => $statusColor,
+                        'authentication_status' => $authLabel,
+                        'authentication_status_raw' => $rawAuth,
+                        'authentication_status_color' => $authColor,
                         'contract_date' => $order->contract_date ? Carbon::parse($order->contract_date)->format('Y-m-d') : ($order->created_at ? $order->created_at->format('Y-m-d') : '-'),
                     ];
                 })->values();
@@ -409,6 +540,23 @@ class ReportController extends Controller
             }
         }
 
+        // Available authentication statuses list (settings + counts)
+        $authStatusesList = [];
+        foreach ($configuredAuthStatuses as $ast) {
+            $label = $ast->label;
+            $authStatusesList[$label] = [
+                'key' => $ast->key,
+                'label' => $ast->label,
+                'color' => $ast->color ?: '#0284c7',
+                'count' => $globalAuthStatusCounts[$label]['count'] ?? ($globalAuthStatusCounts[$ast->key]['count'] ?? 0),
+            ];
+        }
+        foreach ($globalAuthStatusCounts as $label => $astInfo) {
+            if (!isset($authStatusesList[$label])) {
+                $authStatusesList[$label] = $astInfo;
+            }
+        }
+
         return response()->json([
             'kpis' => [
                 'total_saudi_offices' => $saudiOffices->count(),
@@ -422,6 +570,7 @@ class ReportController extends Controller
                 'status_counts' => array_values($globalStatusCounts),
             ],
             'statuses' => array_values($statusesList),
+            'authentication_statuses' => array_values($authStatusesList),
             'countries' => $countries,
             'cities' => $cities,
             'saudi_offices' => $saudiOffices,
@@ -472,6 +621,38 @@ class ReportController extends Controller
             $query->whereIn('status', ['تم انتظار حوالة مساند', 'بانتظار حوالة مساند', 'awaiting_musaned_transfer']);
         } elseif ($contractStatus === 'not_paid') {
             $query->whereIn('status', ['لم يتم السداد', 'not_paid']);
+        }
+
+        // Exclude specific statuses from Statement of Account (كشف الحساب)
+        // Requests in statement mode should exclude: 'لم يتم السداد', 'انتظار السداد', and 'منتهي'
+        if ($request->boolean('is_statement') && !in_array($contractStatus, ['not_paid', 'awaiting_transfer'])) {
+            $query->where(function ($q) {
+                $q->whereNull('status')
+                  ->orWhere(function ($sub) {
+                      $sub->whereNotIn('status', [
+                          'لم يتم السداد',
+                          'not_paid',
+                          'unpaid',
+                          'انتظار السداد',
+                          'بانتظار السداد',
+                          'تم انتظار حوالة مساند',
+                          'بانتظار حوالة مساند',
+                          'awaiting_musaned_transfer',
+                          'awaiting_transfer',
+                          'awaiting_payment',
+                          'pending_payment',
+                          'منتهي',
+                          'منتهية',
+                          'منتهي الصلاحية',
+                          'expired',
+                          'ended',
+                          'terminated',
+                      ])
+                      ->where('status', 'not like', '%لم يتم السداد%')
+                      ->where('status', 'not like', '%انتظار%')
+                      ->where('status', 'not like', '%منتهي%');
+                  });
+            });
         }
 
         if ($request->filled('status')) {

@@ -89,6 +89,30 @@ class SettingController extends Controller
             ->orderBy('sort_order')
             ->get(['id', 'key', 'label', 'color', 'sort_order', 'is_active']);
 
+        if ($statuses->isEmpty()) {
+            $defaults = [
+                ['key' => 'documented', 'label' => 'تم التوثيق', 'color' => '#10b981', 'sort_order' => 1],
+                ['key' => 'under_process', 'label' => 'قيد التوثيق', 'color' => '#3b82f6', 'sort_order' => 2],
+                ['key' => 'pending', 'label' => 'بانتظار التوثيق', 'color' => '#f59e0b', 'sort_order' => 3],
+                ['key' => 'rejected', 'label' => 'مرفوض', 'color' => '#ef4444', 'sort_order' => 4],
+                ['key' => 'cancelled', 'label' => 'ملغي', 'color' => '#6b7280', 'sort_order' => 5],
+            ];
+            foreach ($defaults as $status) {
+                Setting::updateOrCreate(
+                    ['group' => 'authentication_status', 'key' => $status['key']],
+                    [
+                        'label' => $status['label'],
+                        'color' => $status['color'],
+                        'sort_order' => $status['sort_order'],
+                        'is_active' => true,
+                    ]
+                );
+            }
+            $statuses = Setting::where('group', 'authentication_status')
+                ->orderBy('sort_order')
+                ->get(['id', 'key', 'label', 'color', 'sort_order', 'is_active']);
+        }
+
         return response()->json(['data' => $statuses]);
     }
 

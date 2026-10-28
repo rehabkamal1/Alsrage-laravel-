@@ -33,11 +33,29 @@ class DatabaseSeeder extends Seeder
             ['key' => 'canceled', 'label' => 'ملغي', 'color' => '#dc3545', 'sort_order' => 4],
         ];
 
-        
-
         foreach ($orderStatuses as $status) {
             Setting::updateOrCreate(
                 ['group' => 'order_status', 'key' => $status['key']],
+                [
+                    'label' => $status['label'],
+                    'color' => $status['color'],
+                    'sort_order' => $status['sort_order'],
+                    'is_active' => true,
+                ]
+            );
+        }
+
+        $authStatuses = [
+            ['key' => 'documented', 'label' => 'تم التوثيق', 'color' => '#10b981', 'sort_order' => 1],
+            ['key' => 'under_process', 'label' => 'قيد التوثيق', 'color' => '#3b82f6', 'sort_order' => 2],
+            ['key' => 'pending', 'label' => 'بانتظار التوثيق', 'color' => '#f59e0b', 'sort_order' => 3],
+            ['key' => 'rejected', 'label' => 'مرفوض', 'color' => '#ef4444', 'sort_order' => 4],
+            ['key' => 'cancelled', 'label' => 'ملغي', 'color' => '#6b7280', 'sort_order' => 5],
+        ];
+
+        foreach ($authStatuses as $status) {
+            Setting::updateOrCreate(
+                ['group' => 'authentication_status', 'key' => $status['key']],
                 [
                     'label' => $status['label'],
                     'color' => $status['color'],
