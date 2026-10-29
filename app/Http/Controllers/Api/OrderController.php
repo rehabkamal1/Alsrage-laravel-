@@ -7,6 +7,7 @@ use App\Http\Requests\StoreOrderRequest;
 use App\Http\Requests\UpdateOrderRequest;
 use App\Http\Resources\OrderResource;
 use App\Models\Client;
+use App\Models\ExternalOffice;
 use App\Models\Order;
 use App\Models\OrderTracking;
 use App\Support\PermissionAccess;
@@ -123,6 +124,11 @@ class OrderController extends Controller
             }
         }
 
+        $this->validateExternalOfficeNationality(
+            $request->input('external_office_id'),
+            $request->input('nationality')
+        );
+
         if ($request->filled('profession')) {
             $professionExists = Setting::where('group', 'profession')
                 ->where('key', $request->profession)
@@ -186,6 +192,11 @@ class OrderController extends Controller
                 ]);
             }
         }
+
+        $this->validateExternalOfficeNationality(
+            $request->input('external_office_id', $order->external_office_id),
+            $request->input('nationality', $order->nationality)
+        );
 
         if ($request->filled('profession')) {
             $professionExists = Setting::where('group', 'profession')
@@ -258,6 +269,24 @@ class OrderController extends Controller
                 'file_name' => $file->getClientOriginalName(),
                 'mime_type' => $file->getMimeType(),
                 'size' => $file->getSize(),
+            ]);
+        }
+    }
+
+    private function validateExternalOfficeNationality($externalOfficeId, ?string $nationality): void
+    {
+        if (!$externalOfficeId || !$nationality) {
+            return;
+        }
+
+        $countryValues = Setting::getNationalityCountryValues($nationality);
+        $matchesNationality = ExternalOffice::whereKey($externalOfficeId)
+            ->whereIn('country', $countryValues)
+            ->exists();
+
+        if (!$matchesNationality) {
+            throw ValidationException::withMessages([
+                'external_office_id' => ['المكتب الخارجي لا يتوافق مع الجنسية المحددة'],
             ]);
         }
     }

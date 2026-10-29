@@ -34,6 +34,10 @@ class StoreOrderTrackingRequest extends FormRequest
             'transfer_status' => ['nullable', 'string'],
             'authentication_status' => ['nullable', 'string'],
             'authorization_status' => ['nullable', 'string'],
+            'attachment_titles' => ['nullable', 'array'],
+            'attachment_titles.*' => ['nullable', 'string', 'max:255'],
+            'attachment_files' => ['nullable', 'array'],
+            'attachment_files.*' => ['nullable', 'file', 'mimes:jpeg,png,jpg,gif,pdf', 'max:5120'],
         ];
     }
 }

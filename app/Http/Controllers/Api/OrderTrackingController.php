@@ -9,6 +9,7 @@ use App\Http\Resources\OrderTrackingResource;
 use App\Models\OrderTracking;
 use App\Support\PermissionAccess;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class OrderTrackingController extends Controller
 {
@@ -124,7 +125,10 @@ class OrderTrackingController extends Controller
             ], 409);
         }
 
-        $tracking = OrderTracking::create($request->validated());
+        $data = $request->validated();
+        unset($data['attachment_files'], $data['attachment_titles']);
+        $tracking = OrderTracking::create($data);
+        $this->storeTrackingAttachments($tracking, $request);
 
         return (new OrderTrackingResource($tracking))
             ->response()
@@ -151,9 +155,11 @@ class OrderTrackingController extends Controller
             unset($data['delegate_phone'], $data['sponsor_number']);
         }
 
+        unset($data['attachment_files'], $data['attachment_titles']);
         $orderTracking->update($data);
+        $this->storeTrackingAttachments($orderTracking, $request);
 
-        return new OrderTrackingResource($orderTracking);
+        return new OrderTrackingResource($orderTracking->load('attachments'));
     }
 
     public function destroy(OrderTracking $orderTracking)
@@ -163,5 +169,26 @@ class OrderTrackingController extends Controller
         return response()->json([
             'message' => 'تم حذف التتبع بنجاح.',
         ]);
+    }
+
+    private function storeTrackingAttachments(OrderTracking $tracking, Request $request): void
+    {
+        $files = $request->file('attachment_files', []);
+        $titles = $request->input('attachment_titles', []);
+
+        foreach ($files as $index => $file) {
+            if (!$file) {
+                continue;
+            }
+
+            $path = $file->store('attachments/tracking/' . $tracking->id, 'public');
+            $tracking->attachments()->create([
+                'title' => $titles[$index] ?? $file->getClientOriginalName(),
+                'file_path' => $path,
+                'file_name' => $file->getClientOriginalName(),
+                'mime_type' => $file->getMimeType(),
+                'size' => $file->getSize(),
+            ]);
+        }
     }
 }

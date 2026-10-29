@@ -61,4 +61,11 @@ class UpdateOrderRequest extends FormRequest
             ],
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'musaned_contract_number.unique' => 'رقم عقد مساند مستخدم بالفعل، يرجى إدخال رقم آخر.',
+        ];
+    }
 }

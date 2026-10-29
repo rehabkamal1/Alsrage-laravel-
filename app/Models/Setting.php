@@ -42,6 +42,22 @@ class Setting extends Model
         });
     }
 
+    public static function getNationalityCountryValues(?string $nationality): array
+    {
+        if (!$nationality) {
+            return [];
+        }
+
+        $setting = self::where('group', 'nationality')
+            ->where('key', $nationality)
+            ->first(['key', 'label']);
+
+        return array_values(array_unique(array_filter([
+            $setting?->key ?? $nationality,
+            $setting?->label,
+        ])));
+    }
+
     public static function getAllGroups()
     {
         $groups = self::select('group')

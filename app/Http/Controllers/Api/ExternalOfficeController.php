@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ExternalOfficeResource;
 use App\Models\ExternalOffice;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 
 class ExternalOfficeController extends Controller
@@ -21,6 +22,13 @@ class ExternalOfficeController extends Controller
                     ->orWhere('country', 'like', "%{$search}%")
                     ->orWhere('notes', 'like', "%{$search}%");
             });
+        }
+
+        if ($request->filled('nationality')) {
+            $query->whereIn(
+                'country',
+                Setting::getNationalityCountryValues($request->string('nationality')->toString())
+            );
         }
 
         // Date filters

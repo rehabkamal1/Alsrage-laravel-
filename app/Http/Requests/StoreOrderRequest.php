@@ -68,6 +68,7 @@ class StoreOrderRequest extends FormRequest
             'arrival_destination.required' => 'حقل جهة القدوم مطلوب',
             'id_number.required' => 'حقل الرقم الهوية مطلوب',
             'passport_number.required' => 'حقل رقم جواز السفر مطلوب',
+            'musaned_contract_number.unique' => 'رقم عقد مساند مستخدم بالفعل، يرجى إدخال رقم آخر.',
         ];
     }
 }
