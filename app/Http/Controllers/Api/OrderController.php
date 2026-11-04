@@ -52,6 +52,7 @@ class OrderController extends Controller
             })
             ->when($request->filled('status'), fn($query) => $query->where('status', $request->string('status')))
             ->when($request->filled('order_status'), fn($query) => $query->where('order_status', $request->string('order_status')))
+            ->when($request->filled('nationality'), fn($query) => $query->where('nationality', $request->string('nationality')))
             ->when($request->filled('tracking_status'), function ($query) use ($request) {
                 $trackingStatus = $request->input('tracking_status');
 
