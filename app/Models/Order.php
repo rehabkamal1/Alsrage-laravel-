@@ -88,6 +88,19 @@ class Order extends Model
         return $this->morphMany(Attachment::class, 'attachable');
     }
 
+    public function needsMusanedContractNumber(): bool
+    {
+        $status = strtolower(trim((string) $this->status));
+        $isMusanedPaid = (
+            str_contains($status, 'مساند') && str_contains($status, 'سداد')
+        ) || (
+            str_contains($status, 'musaned') &&
+            (str_contains($status, 'paid') || str_contains($status, 'payment'))
+        );
+
+        return $isMusanedPaid && blank($this->musaned_contract_number);
+    }
+
     public static function checkAwaitingMusanedTransferTimeouts(): void
     {
         $cutoff = \Carbon\Carbon::now()->subHours(24);

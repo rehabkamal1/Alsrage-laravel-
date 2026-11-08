@@ -93,6 +93,24 @@ class OrderProcessStatusTest extends TestCase
             ->assertJsonValidationErrors('order_status');
     }
 
+    public function test_paid_musaned_orders_return_contract_number_reminder_state(): void
+    {
+        $order = Order::create([
+            'visa_holder_name' => 'طلب بدون رقم عقد',
+            'status' => 'تم سداد مساند',
+        ]);
+        Sanctum::actingAs($this->createEmployee());
+
+        $this->getJson('/api/orders')
+            ->assertOk()
+            ->assertJsonPath('data.0.needs_musaned_contract_number', true);
+
+        $this->patchJson("/api/orders/{$order->id}", [
+            'musaned_contract_number' => 'MUS-12345',
+        ])->assertOk()
+            ->assertJsonPath('data.needs_musaned_contract_number', false);
+    }
+
     public function test_orders_can_be_filtered_by_exact_service_type(): void
     {
         $matchingOrder = Order::create([

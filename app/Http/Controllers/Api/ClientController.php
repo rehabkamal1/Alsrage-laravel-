@@ -87,6 +87,14 @@ class ClientController extends Controller
             unset($data['phone'], $data['additional_phone']);
         }
         $client->update($data);
+
+        if (array_key_exists('employee_id', $data)) {
+            $client->orders()->update([
+                'employee_id' => $data['employee_id'],
+                'updated_at' => now(),
+            ]);
+        }
+
         return new ClientResource($client->load('employee'));
     }
 

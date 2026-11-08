@@ -36,6 +36,7 @@ class OrderResource extends JsonResource
             'passport_number' => $this->passport_number,
             'birth_date' => $this->birth_date,
             'musaned_contract_number' => $this->musaned_contract_number,
+            'needs_musaned_contract_number' => $this->needsMusanedContractNumber(),
             'authentication_contract_number' => $this->authentication_contract_number,
             'external_agent_number' => $this->external_agent_number,
             'contract_date' => $this->contract_date,
