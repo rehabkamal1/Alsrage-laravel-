@@ -7,6 +7,7 @@ use App\Models\Employee;
 use App\Models\Setting;
 use App\Models\Transaction;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -30,7 +31,7 @@ class TransactionPaymentMethodValidationTest extends TestCase
             'amount' => 100,
             'client_id' => $client->id,
             'payment_method' => 'custom-wire',
-        ])
+        ], ['Idempotency-Key' => (string) Str::uuid()])
             ->assertUnprocessable()
             ->assertJsonValidationErrors('bank_name');
     }
@@ -52,7 +53,7 @@ class TransactionPaymentMethodValidationTest extends TestCase
             'client_id' => $client->id,
             'payment_method' => 'cash-desk',
             'bank_name' => 'old-bank',
-        ])->assertCreated();
+        ], ['Idempotency-Key' => (string) Str::uuid()])->assertCreated();
 
         $this->assertDatabaseHas('transactions', [
             'id' => $response->json('data.id'),

@@ -6,51 +6,50 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Support\PermissionAccess;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
 
 class ReportController extends Controller
 {
     public function orderFollowUp(Request $request)
     {
-        $query = Order::with(['client', 'employee', 'tracking', 'saudiOffice', 'externalOffice']);
+        $baseQuery = Order::query()->with(['client', 'employee', 'tracking', 'saudiOffice', 'externalOffice']);
 
-        // Filters
         if ($request->filled('date_from')) {
-            $query->whereDate('created_at', '>=', $request->date_from);
+            $baseQuery->whereDate('created_at', '>=', $request->date_from);
         }
         if ($request->filled('date_to')) {
-            $query->whereDate('created_at', '<=', $request->date_to);
+            $baseQuery->whereDate('created_at', '<=', $request->date_to);
         }
         if ($request->filled('employee_id')) {
-            $query->where('employee_id', $request->employee_id);
+            $baseQuery->where('employee_id', $request->employee_id);
         } elseif ($request->filled('marketer_id')) {
-            $query->where('employee_id', $request->marketer_id);
+            $baseQuery->where('employee_id', $request->marketer_id);
         }
         if ($request->filled('saudi_office_id')) {
-            $query->where('saudi_office_id', $request->saudi_office_id);
+            $baseQuery->where('saudi_office_id', $request->saudi_office_id);
         }
         if ($request->filled('external_office_id')) {
-            $query->where('external_office_id', $request->external_office_id);
+            $baseQuery->where('external_office_id', $request->external_office_id);
         }
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            $baseQuery->where('status', $request->status);
         } else {
-            // Only active orders for follow up when no specific status is selected
-            $query->whereNotIn('status', ['completed', 'cancelled', 'مكتمل', 'ملغي']);
+            $baseQuery->whereNotIn('status', ['completed', 'cancelled', 'مكتمل', 'ملغي']);
         }
-        // Parse multi-select authentication status filter
+
         $authStatusesFilter = [];
         if ($request->filled('authentication_statuses')) {
-            $authStatusesFilter = is_array($request->authentication_statuses) 
-                ? $request->authentication_statuses 
+            $authStatusesFilter = is_array($request->authentication_statuses)
+                ? $request->authentication_statuses
                 : array_filter(explode(',', $request->authentication_statuses));
         } elseif ($request->filled('authentication_status')) {
-            $authStatusesFilter = is_array($request->authentication_status) 
-                ? $request->authentication_status 
+            $authStatusesFilter = is_array($request->authentication_status)
+                ? $request->authentication_status
                 : array_filter(explode(',', $request->authentication_status));
         }
 
-        if (!empty($authStatusesFilter)) {
+        if (! empty($authStatusesFilter)) {
             $allAuthSettings = \App\Models\Setting::where('group', 'authentication_status')->get();
             $resolvedAuthValues = [];
             foreach ($authStatusesFilter as $asVal) {
@@ -59,70 +58,57 @@ class ReportController extends Controller
                     return $item->key === $asVal || $item->label === $asVal;
                 });
                 if ($stObj) {
-                    if (!empty($stObj->key)) $resolvedAuthValues[] = $stObj->key;
-                    if (!empty($stObj->label)) $resolvedAuthValues[] = $stObj->label;
+                    if (! empty($stObj->key)) {
+                        $resolvedAuthValues[] = $stObj->key;
+                    }
+                    if (! empty($stObj->label)) {
+                        $resolvedAuthValues[] = $stObj->label;
+                    }
                 }
             }
             $resolvedAuthValues = array_values(array_unique(array_filter($resolvedAuthValues)));
 
-            $query->whereHas('tracking', function ($q) use ($resolvedAuthValues) {
+            $baseQuery->whereHas('tracking', function ($q) use ($resolvedAuthValues) {
                 $q->whereIn('authentication_status', $resolvedAuthValues);
             });
         }
 
-        $orders = $query->get();
+        $statusSettings = Cache::remember('report_order_status_settings', 3600, function () {
+            return \App\Models\Setting::where('group', 'order_status')->get();
+        });
+        $statusSettingsMap = $statusSettings->mapWithKeys(function ($item) {
+            return [$item->key => (int) ($item->target_days ?: 60)];
+        })->toArray();
+        $statusLabelMap = $statusSettings->mapWithKeys(function ($item) {
+            return [$item->key => $item->label];
+        })->toArray();
 
-        // Load dynamic target SLA days and labels for each stage/status from settings
-        $statusSettings = \App\Models\Setting::where('group', 'order_status')->get();
-        $statusSettingsMap = $statusSettings
-            ->mapWithKeys(function ($item) {
-                return [$item->key => (int) ($item->target_days ?: 60)];
-            })
-            ->toArray();
-        $statusLabelMap = $statusSettings
-            ->mapWithKeys(function ($item) {
-                return [$item->key => $item->label];
-            })
-            ->toArray();
+        $authSettings = Cache::remember('report_auth_status_settings', 3600, function () {
+            return \App\Models\Setting::where('group', 'authentication_status')->get();
+        });
+        $authLabelMap = $authSettings->mapWithKeys(function ($item) {
+            return [$item->key => $item->label];
+        })->toArray();
+        $authColorMap = $authSettings->mapWithKeys(function ($item) {
+            return [$item->key => $item->color ?: '#0284c7', $item->label => $item->color ?: '#0284c7'];
+        })->toArray();
 
-        $authSettings = \App\Models\Setting::where('group', 'authentication_status')->get();
-        $authLabelMap = $authSettings
-            ->mapWithKeys(function ($item) {
-                return [$item->key => $item->label];
-            })
-            ->toArray();
-        $authColorMap = $authSettings
-            ->mapWithKeys(function ($item) {
-                return [$item->key => $item->color ?: '#0284c7', $item->label => $item->color ?: '#0284c7'];
-            })
-            ->toArray();
+        $statsQuery = clone $baseQuery;
+        $stats = $statsQuery
+            ->selectRaw('COUNT(*) as total_orders')
+            ->selectRaw('SUM(CASE WHEN status IN (\'completed\', \'مكتمل\', \'cancelled\', \'ملغي\') THEN 1 ELSE 0 END) as completed_or_cancelled')
+            ->selectRaw('SUM(CASE WHEN status NOT IN (\'completed\', \'cancelled\', \'مكتمل\', \'ملغي\') THEN 1 ELSE 0 END) as active_orders')
+            ->first();
 
+        $orders = $baseQuery->paginate((int) $request->integer('per_page', 15))->withQueryString();
         $now = Carbon::now();
-
-        $totalLate = 0;
-        $withoutFollowup = 0;
-        $exceededSla = 0;
-        $totalDelayDays = 0;
-
-        $processedOrders = $orders->map(function ($order) use ($statusSettingsMap, $statusLabelMap, $authLabelMap, $authColorMap, $now, &$totalLate, &$withoutFollowup, &$exceededSla, &$totalDelayDays) {
+        $processedOrders = $orders->getCollection()->map(function ($order) use ($statusSettingsMap, $statusLabelMap, $authLabelMap, $authColorMap, $now) {
             $startDate = $order->contract_date ? Carbon::parse($order->contract_date) : $order->created_at;
             $daysSinceStart = (int) $startDate->diffInDays($now);
-            
-            // Get stage SLA target days from settings (default to 60 if not configured)
             $stageTargetDays = (int) ($statusSettingsMap[$order->status] ?? 60);
             $delayDays = max(0, $daysSinceStart - $stageTargetDays);
-            
             $isLate = $delayDays > 0;
-            $isWithoutFollowup = !$order->tracking || !$order->tracking->last_action_date;
-            
-            if ($isLate) {
-                $totalLate++;
-                $exceededSla++;
-                $totalDelayDays += $delayDays;
-            }
-            if ($isWithoutFollowup) {
-                $withoutFollowup++;
-            }
+            $isWithoutFollowup = ! $order->tracking || ! $order->tracking->last_action_date;
 
             $statusLabel = $statusLabelMap[$order->status] ?? $order->status;
             $rawAuth = $order->tracking ? $order->tracking->authentication_status : null;
@@ -131,7 +117,7 @@ class ReportController extends Controller
 
             return [
                 'id' => $order->id,
-                'order_number' => $order->id, // fallback if there is no order_number field
+                'order_number' => $order->id,
                 'visa_number' => $order->visa_number ?: '-',
                 'client' => ['name' => $order->client ? $order->client->name : '-'],
                 'client_name' => $order->client ? $order->client->name : '-',
@@ -156,11 +142,13 @@ class ReportController extends Controller
             ];
         });
 
-        $avgDelayDays = $totalLate > 0 ? round($totalDelayDays / $totalLate, 1) : 0;
-        $totalOrders = $orders->count();
-        $withinSla = max(0, $totalOrders - $exceededSla);
+        $orders->setCollection($processedOrders);
 
-        // Count authentication statuses across all orders in the report
+        $totalOrders = (int) ($stats->total_orders ?? $orders->total());
+        $activeOrders = (int) ($stats->active_orders ?? 0);
+        $withinSla = max(0, $totalOrders - (int) ($stats->completed_or_cancelled ?? 0));
+        $avgDelayDays = $orders->getCollection()->avg(fn ($item) => (float) ($item['delay_days'] ?? 0)) ?: 0;
+
         $authCountsMap = [];
         foreach ($processedOrders as $po) {
             $al = $po['authentication_status'];
@@ -168,6 +156,7 @@ class ReportController extends Controller
                 $authCountsMap[$al] = ($authCountsMap[$al] ?? 0) + 1;
             }
         }
+
         $authStatusesList = [];
         foreach ($authSettings as $ast) {
             $authStatusesList[] = [
@@ -181,11 +170,11 @@ class ReportController extends Controller
         return response()->json([
             'kpis' => [
                 'total_orders' => $totalOrders,
-                'total_late' => $totalLate,
-                'without_followup' => $withoutFollowup,
-                'exceeded_sla' => $exceededSla,
-                'within_sla' => $withinSla,
-                'avg_delay_days' => $avgDelayDays,
+                'total_late' => (int) $orders->getCollection()->filter(fn ($item) => (bool) ($item['exceeded_sla'] ?? false))->count(),
+                'without_followup' => (int) $orders->getCollection()->filter(fn ($item) => (bool) ($item['is_without_followup'] ?? false))->count(),
+                'exceeded_sla' => (int) $orders->getCollection()->filter(fn ($item) => (bool) ($item['exceeded_sla'] ?? false))->count(),
+                'within_sla' => max(0, $activeOrders - (int) $orders->getCollection()->filter(fn ($item) => (bool) ($item['exceeded_sla'] ?? false))->count()),
+                'avg_delay_days' => round($avgDelayDays, 1),
             ],
             'orders' => $processedOrders,
             'authentication_statuses' => $authStatusesList,
@@ -219,25 +208,36 @@ class ReportController extends Controller
             $query->where('external_office_id', $request->external_office_id);
         }
 
-        $orders = $query->latest('updated_at')->get();
-
         $SLA_DAYS = 60;
-        $totalCompleted = $orders->count();
-        $totalRevenue = 0;
+        $orders = (clone $query)
+            ->latest('updated_at')
+            ->paginate(min(max($request->integer('per_page', 15), 1), 100))
+            ->withQueryString();
+        $totalCompleted = $orders->total();
+        $totalRevenue = (float) (clone $query)->sum('total_price');
         $totalCompletionDays = 0;
         $withinSlaCount = 0;
 
-        $processedOrders = $orders->map(function ($order) use ($SLA_DAYS, &$totalRevenue, &$totalCompletionDays, &$withinSlaCount) {
+        $queryForMetrics = (clone $query)
+            ->withoutEagerLoads()
+            ->select(['id', 'contract_date', 'created_at', 'updated_at'])
+            ->reorder('id');
+        $queryForMetrics->chunkById(500, function ($batch) use ($SLA_DAYS, &$totalCompletionDays, &$withinSlaCount) {
+            foreach ($batch as $order) {
+                $startDate = $order->contract_date ? Carbon::parse($order->contract_date) : $order->created_at;
+                $completionDays = max(1, $startDate->diffInDays($order->updated_at));
+                $totalCompletionDays += $completionDays;
+
+                if ($completionDays <= $SLA_DAYS) {
+                    $withinSlaCount++;
+                }
+            }
+        });
+
+        $processedOrders = $orders->getCollection()->map(function ($order) use ($SLA_DAYS) {
             $startDate = $order->contract_date ? Carbon::parse($order->contract_date) : $order->created_at;
             $completedDate = $order->updated_at;
             $completionDays = max(1, $startDate->diffInDays($completedDate));
-
-            $totalRevenue += (float) ($order->total_price ?? 0);
-            $totalCompletionDays += $completionDays;
-
-            if ($completionDays <= $SLA_DAYS) {
-                $withinSlaCount++;
-            }
 
             return [
                 'id' => $order->id,
@@ -265,6 +265,13 @@ class ReportController extends Controller
                 'sla_compliance_rate' => $slaComplianceRate,
             ],
             'orders' => $processedOrders,
+            'data' => $processedOrders,
+            'meta' => [
+                'current_page' => $orders->currentPage(),
+                'last_page' => $orders->lastPage(),
+                'per_page' => $orders->perPage(),
+                'total' => $orders->total(),
+            ],
         ]);
     }
 
@@ -356,47 +363,60 @@ class ReportController extends Controller
         $globalAuthStatusCounts = [];
 
         $processOfficeOrders = function ($officeQuery, $isSaudi = true) use ($dateFrom, $dateTo, $saudiOfficeId, $externalOfficeId, $statusesFilter, $statusColorMap, $statusLabelMap, $resolvedAuthValues, $authStatusColorMap, $authStatusLabelMap, &$globalStatusCounts, &$globalAuthStatusCounts) {
-            return $officeQuery->get()->map(function ($office) use ($isSaudi, $dateFrom, $dateTo, $saudiOfficeId, $externalOfficeId, $statusesFilter, $statusColorMap, $statusLabelMap, $resolvedAuthValues, $authStatusColorMap, $authStatusLabelMap, &$globalStatusCounts, &$globalAuthStatusCounts) {
-                $ordersQuery = $office->orders()->with(['client', 'employee', 'tracking']);
+            $offices = $officeQuery->get();
+            if ($offices->isEmpty()) {
+                return $offices;
+            }
 
-                if (!empty($dateFrom)) {
-                    $ordersQuery->whereDate('created_at', '>=', $dateFrom);
-                }
-                if (!empty($dateTo)) {
-                    $ordersQuery->whereDate('created_at', '<=', $dateTo);
-                }
-                if ($isSaudi && !empty($externalOfficeId)) {
-                    $ordersQuery->where('external_office_id', $externalOfficeId);
-                }
-                if (!$isSaudi && !empty($saudiOfficeId)) {
-                    $ordersQuery->where('saudi_office_id', $saudiOfficeId);
-                }
-                if (!empty($resolvedAuthValues)) {
-                    $ordersQuery->whereHas('tracking', function ($q) use ($resolvedAuthValues) {
-                        $q->whereIn('authentication_status', $resolvedAuthValues);
-                    });
-                }
-                if (!empty($statusesFilter)) {
-                    $ordersQuery->where(function($q) use ($statusesFilter) {
-                        foreach (array_values($statusesFilter) as $idx => $stVal) {
-                            $method = $idx === 0 ? 'where' : 'orWhere';
-                            $q->$method(function($subQ) use ($stVal) {
-                                $subQ->where('status', $stVal);
-                                if ($stVal === 'completed' || $stVal === 'مكتمل') {
-                                    $subQ->orWhereIn('status', ['completed', 'مكتمل']);
-                                } elseif ($stVal === 'processing' || $stVal === 'قيد التنفيذ') {
-                                    $subQ->orWhereIn('status', ['processing', 'قيد التنفيذ']);
-                                } elseif ($stVal === 'pending' || $stVal === 'قيد الانتظار') {
-                                    $subQ->orWhereIn('status', ['pending', 'قيد الانتظار']);
-                                } elseif ($stVal === 'canceled' || $stVal === 'cancelled' || $stVal === 'ملغي') {
-                                    $subQ->orWhereIn('status', ['canceled', 'cancelled', 'ملغي']);
-                                }
-                            });
-                        }
-                    });
-                }
+            $officeColumn = $isSaudi ? 'saudi_office_id' : 'external_office_id';
+            $ordersQuery = Order::query()
+                ->with(['client', 'employee', 'tracking'])
+                ->whereIn($officeColumn, $offices->modelKeys());
 
-                $orders = $ordersQuery->get();
+            if (!empty($dateFrom)) {
+                $ordersQuery->whereDate('created_at', '>=', $dateFrom);
+            }
+            if (!empty($dateTo)) {
+                $ordersQuery->whereDate('created_at', '<=', $dateTo);
+            }
+            if ($isSaudi && !empty($externalOfficeId)) {
+                $ordersQuery->where('external_office_id', $externalOfficeId);
+            }
+            if (!$isSaudi && !empty($saudiOfficeId)) {
+                $ordersQuery->where('saudi_office_id', $saudiOfficeId);
+            }
+            if (!empty($resolvedAuthValues)) {
+                $ordersQuery->whereHas('tracking', function ($q) use ($resolvedAuthValues) {
+                    $q->whereIn('authentication_status', $resolvedAuthValues);
+                });
+            }
+            if (!empty($statusesFilter)) {
+                $ordersQuery->where(function($q) use ($statusesFilter) {
+                    foreach (array_values($statusesFilter) as $idx => $stVal) {
+                        $method = $idx === 0 ? 'where' : 'orWhere';
+                        $q->$method(function($subQ) use ($stVal) {
+                            $subQ->where('status', $stVal);
+                            if ($stVal === 'completed' || $stVal === 'مكتمل') {
+                                $subQ->orWhereIn('status', ['completed', 'مكتمل']);
+                            } elseif ($stVal === 'processing' || $stVal === 'قيد التنفيذ') {
+                                $subQ->orWhereIn('status', ['processing', 'قيد التنفيذ']);
+                            } elseif ($stVal === 'pending' || $stVal === 'قيد الانتظار') {
+                                $subQ->orWhereIn('status', ['pending', 'قيد الانتظار']);
+                            } elseif ($stVal === 'canceled' || $stVal === 'cancelled' || $stVal === 'ملغي') {
+                                $subQ->orWhereIn('status', ['canceled', 'cancelled', 'ملغي']);
+                            }
+                        });
+                    }
+                });
+            }
+
+            $ordersByOffice = $ordersQuery
+                ->orderBy('id')
+                ->get()
+                ->groupBy($officeColumn);
+
+            return $offices->map(function ($office) use ($ordersByOffice, $statusColorMap, $statusLabelMap, $authStatusColorMap, $authStatusLabelMap, &$globalStatusCounts, &$globalAuthStatusCounts) {
+                $orders = $ordersByOffice->get($office->id, collect());
 
                 $totalOrders = $orders->count();
                 $completedOrders = $orders->filter(fn($o) => in_array($o->status, ['completed', 'مكتمل']))->count();
@@ -676,7 +696,11 @@ class ReportController extends Controller
             });
         }
 
-        $orders = $query->latest()->get();
+        $ordersPaginator = (clone $query)
+            ->latest()
+            ->paginate(min(max($request->integer('per_page', 15), 1), 100))
+            ->withQueryString();
+        $orders = (clone $query)->latest()->get();
 
         $statusSettings = \App\Models\Setting::where('group', 'order_status')->get();
         $statusLabelMap = $statusSettings->mapWithKeys(function ($item) {
@@ -908,6 +932,9 @@ class ReportController extends Controller
         }
 
         $collectionRate = $totalContractValue > 0 ? round(($totalCollected / $totalContractValue) * 100, 1) : 0;
+        $pageFinancialOrders = $financialOrders
+            ->slice(($ordersPaginator->currentPage() - 1) * $ordersPaginator->perPage(), $ordersPaginator->perPage())
+            ->values();
 
         return response()->json([
             'kpis' => [
@@ -915,11 +942,18 @@ class ReportController extends Controller
                 'total_collected' => $totalCollected,
                 'total_outstanding' => $totalOutstanding,
                 'collection_rate' => $collectionRate,
-                'total_orders' => count($financialOrders),
+                'total_orders' => $ordersPaginator->total(),
                 'total_clients' => count($clientsSummary),
                 'total_marketers' => count($marketersSummary),
             ],
-            'orders' => $financialOrders,
+            'orders' => $pageFinancialOrders,
+            'data' => $pageFinancialOrders,
+            'meta' => [
+                'current_page' => $ordersPaginator->currentPage(),
+                'last_page' => $ordersPaginator->lastPage(),
+                'per_page' => $ordersPaginator->perPage(),
+                'total' => $ordersPaginator->total(),
+            ],
             'clients_summary' => $clientsSummary,
             'marketers_summary' => $marketersSummary,
             'clients' => \App\Models\Client::select('id', 'name', 'phone', 'opening_balance')

@@ -7,242 +7,132 @@ use App\Http\Requests\UpdatePriorityLevelsRequest;
 use App\Http\Requests\UpdatePassportStatusesRequest;
 use App\Http\Requests\UpdateTransferStatusesRequest;
 use App\Models\Setting;
+use App\Services\SettingService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class SettingController extends Controller
 {
+    public function __construct(protected SettingService $settingService)
+    {
+    }
+
+    private function getGroupData(string $group, array $select = ['id', 'key', 'label', 'color', 'sort_order', 'is_active'])
+    {
+        return $this->settingService->getGroup($group, $select);
+    }
+
+    private function bulkUpdate(string $group, array $items, string $message, ?string $keyField = 'key')
+    {
+        $this->settingService->bulkUpsert($group, $items, $keyField);
+
+        return response()->json(['message' => $message]);
+    }
+
+    private function deleteSetting(string $group, int $id)
+    {
+        $setting = Setting::where('group', $group)->find($id);
+        if (!$setting) {
+            return response()->json(['message' => 'العنصر غير موجود'], 404);
+        }
+
+        $setting->delete();
+        Cache::forget("settings:{$group}");
+
+        if ($group === 'order_status') {
+            Cache::forget('report_order_status_settings');
+        } elseif ($group === 'authentication_status') {
+            Cache::forget('report_auth_status_settings');
+        }
+
+        return response()->json(['message' => 'تم الحذف بنجاح']);
+    }
+
     public function getPriorityLevels()
     {
-        $levels = Setting::where('group', 'priority_level')
-            ->orderBy('sort_order')
-            ->get(['id', 'key', 'label', 'color', 'sort_order', 'is_active']);
-
-        return response()->json(['data' => $levels]);
+        return response()->json(['data' => $this->getGroupData('priority_level')]);
     }
 
     public function getPassportStatuses()
     {
-        $statuses = Setting::where('group', 'passport_status')
-            ->orderBy('sort_order')
-            ->get(['id', 'key', 'label', 'color', 'sort_order', 'is_active']);
-
-        return response()->json(['data' => $statuses]);
+        return response()->json(['data' => $this->getGroupData('passport_status')]);
     }
 
     public function getTransferStatuses()
     {
-        $statuses = Setting::where('group', 'transfer_status')
-            ->orderBy('sort_order')
-            ->get(['id', 'key', 'label', 'color', 'sort_order', 'is_active']);
-
-        return response()->json(['data' => $statuses]);
+        return response()->json(['data' => $this->getGroupData('transfer_status')]);
     }
 
     public function getPaymentMethods()
     {
-        $methods = Setting::where('group', 'payment_method')
-            ->orderBy('sort_order')
-            ->get(['id', 'key', 'label', 'color', 'sort_order', 'is_active']);
-
-        return response()->json(['data' => $methods]);
+        return response()->json(['data' => $this->getGroupData('payment_method')]);
     }
 
     public function getBankNames()
     {
-        $banks = Setting::where('group', 'bank_name')
-            ->orderBy('sort_order')
-            ->get(['id', 'key', 'label', 'color', 'sort_order', 'is_active']);
-
-        return response()->json(['data' => $banks]);
+        return response()->json(['data' => $this->getGroupData('bank_name')]);
     }
 
     public function getServiceTypes()
     {
-        $types = Setting::where('group', 'service_type')
-            ->orderBy('sort_order')
-            ->get(['id', 'key', 'label', 'color', 'sort_order', 'is_active']);
-
-        return response()->json(['data' => $types]);
+        return response()->json(['data' => $this->getGroupData('service_type')]);
     }
 
     public function getOrderStatuses()
     {
-        $statuses = Setting::where('group', 'order_status')
-            ->orderBy('sort_order')
-            ->get(['id', 'key', 'label', 'color', 'sort_order', 'target_days', 'is_active']);
-
-        return response()->json(['data' => $statuses]);
+        return response()->json(['data' => $this->getGroupData('order_status', ['id', 'key', 'label', 'color', 'sort_order', 'target_days', 'is_active'])]);
     }
 
     public function getOrderProcessStatuses()
     {
-        $statuses = Setting::where('group', 'order_process_status')
-            ->orderBy('sort_order')
-            ->get(['id', 'key', 'label', 'color', 'sort_order', 'is_active']);
-
-        return response()->json(['data' => $statuses]);
+        return response()->json(['data' => $this->getGroupData('order_process_status')]);
     }
 
     public function getAuthenticationStatuses()
     {
-        $statuses = Setting::where('group', 'authentication_status')
-            ->orderBy('sort_order')
-            ->get(['id', 'key', 'label', 'color', 'sort_order', 'is_active']);
-
-        if ($statuses->isEmpty()) {
-            $defaults = [
-                ['key' => 'documented', 'label' => 'تم التوثيق', 'color' => '#10b981', 'sort_order' => 1],
-                ['key' => 'under_process', 'label' => 'قيد التوثيق', 'color' => '#3b82f6', 'sort_order' => 2],
-                ['key' => 'pending', 'label' => 'بانتظار التوثيق', 'color' => '#f59e0b', 'sort_order' => 3],
-                ['key' => 'rejected', 'label' => 'مرفوض', 'color' => '#ef4444', 'sort_order' => 4],
-                ['key' => 'cancelled', 'label' => 'ملغي', 'color' => '#6b7280', 'sort_order' => 5],
-            ];
-            foreach ($defaults as $status) {
-                Setting::updateOrCreate(
-                    ['group' => 'authentication_status', 'key' => $status['key']],
-                    [
-                        'label' => $status['label'],
-                        'color' => $status['color'],
-                        'sort_order' => $status['sort_order'],
-                        'is_active' => true,
-                    ]
-                );
-            }
-            $statuses = Setting::where('group', 'authentication_status')
-                ->orderBy('sort_order')
-                ->get(['id', 'key', 'label', 'color', 'sort_order', 'is_active']);
-        }
+        $statuses = $this->settingService->ensureAuthenticationDefaults();
 
         return response()->json(['data' => $statuses]);
     }
 
     public function getAuthorizationStatuses()
     {
-        $statuses = Setting::where('group', 'authorization_status')
-            ->orderBy('sort_order')
-            ->get(['id', 'key', 'label', 'color', 'sort_order', 'is_active']);
-
-        return response()->json(['data' => $statuses]);
+        return response()->json(['data' => $this->getGroupData('authorization_status')]);
     }
 
     public function updatePriorityLevels(UpdatePriorityLevelsRequest $request)
     {
-        $levels = $request->input('levels', []);
-
-        foreach ($levels as $level) {
-            Setting::updateOrCreate(
-                ['group' => 'priority_level', 'key' => $level['key']],
-                [
-                    'label' => $level['label'],
-                    'color' => $level['color'] ?? '#6c757d',
-                    'sort_order' => $level['sort_order'] ?? 0,
-                    'is_active' => $level['is_active'] ?? true,
-                ]
-            );
-        }
-
-        return response()->json(['message' => 'تم حفظ درجات الأهمية بنجاح']);
+        return $this->bulkUpdate('priority_level', $request->input('levels', []), 'تم حفظ درجات الأهمية بنجاح');
     }
 
     public function updatePassportStatuses(UpdatePassportStatusesRequest $request)
     {
-        $statuses = $request->input('statuses', []);
-
-        foreach ($statuses as $status) {
-            Setting::updateOrCreate(
-                ['group' => 'passport_status', 'key' => $status['key']],
-                [
-                    'label' => $status['label'],
-                    'color' => $status['color'] ?? '#6c757d',
-                    'sort_order' => $status['sort_order'] ?? 0,
-                    'is_active' => $status['is_active'] ?? true,
-                ]
-            );
-        }
-
-        return response()->json(['message' => 'تم حفظ حالات ترشيح الجواز بنجاح']);
+        return $this->bulkUpdate('passport_status', $request->input('statuses', []), 'تم حفظ حالات ترشيح الجواز بنجاح');
     }
 
     public function updateTransferStatuses(UpdateTransferStatusesRequest $request)
     {
-        $statuses = $request->input('statuses', []);
-
-        foreach ($statuses as $status) {
-            Setting::updateOrCreate(
-                ['group' => 'transfer_status', 'key' => $status['key']],
-                [
-                    'label' => $status['label'],
-                    'color' => $status['color'] ?? '#6c757d',
-                    'sort_order' => $status['sort_order'] ?? 0,
-                    'is_active' => $status['is_active'] ?? true,
-                ]
-            );
-        }
-
-        return response()->json(['message' => 'تم حفظ حالات التحويل بنجاح']);
+        return $this->bulkUpdate('transfer_status', $request->input('statuses', []), 'تم حفظ حالات التحويل بنجاح');
     }
 
     public function updatePaymentMethods(Request $request)
     {
-        $methods = $request->input('methods', []);
-
-        foreach ($methods as $method) {
-            Setting::updateOrCreate(
-                ['group' => 'payment_method', 'key' => $method['key']],
-                [
-                    'label' => $method['label'],
-                    'color' => $method['color'] ?? '#6c757d',
-                    'sort_order' => $method['sort_order'] ?? 0,
-                    'is_active' => $method['is_active'] ?? true,
-                ]
-            );
-        }
-
-        return response()->json(['message' => 'تم حفظ طرق الدفع بنجاح']);
+        return $this->bulkUpdate('payment_method', $request->input('methods', []), 'تم حفظ طرق الدفع بنجاح');
     }
 
     public function updateBankNames(Request $request)
     {
-        $banks = $request->input('banks', []);
-
-        foreach ($banks as $bank) {
-            Setting::updateOrCreate(
-                ['group' => 'bank_name', 'key' => $bank['key']],
-                [
-                    'label' => $bank['label'],
-                    'color' => $bank['color'] ?? '#6c757d',
-                    'sort_order' => $bank['sort_order'] ?? 0,
-                    'is_active' => $bank['is_active'] ?? true,
-                ]
-            );
-        }
-
-        return response()->json(['message' => 'تم حفظ أسماء البنوك بنجاح']);
+        return $this->bulkUpdate('bank_name', $request->input('banks', []), 'تم حفظ أسماء البنوك بنجاح');
     }
 
     public function updateOrderStatuses(Request $request)
     {
-        $statuses = $request->input('statuses', []);
-
-        foreach ($statuses as $status) {
-            Setting::updateOrCreate(
-                ['group' => 'order_status', 'key' => $status['key']],
-                [
-                    'label' => $status['label'],
-                    'color' => $status['color'] ?? '#6c757d',
-                    'sort_order' => $status['sort_order'] ?? 0,
-                    'target_days' => isset($status['target_days']) ? (int) $status['target_days'] : 60,
-                    'is_active' => $status['is_active'] ?? true,
-                ]
-            );
-        }
-
-        return response()->json(['message' => 'تم حفظ حالات الطلبات بنجاح']);
+        return $this->bulkUpdate('order_status', $request->input('statuses', []), 'تم حفظ حالات الطلبات بنجاح');
     }
 
     public function updateOrderProcessStatuses(Request $request)
     {
-        $validated = $request->validate([
+        $request->validate([
             'statuses' => ['required', 'array'],
             'statuses.*.key' => ['required', 'string', 'max:255'],
             'statuses.*.label' => ['required', 'string', 'max:255'],
@@ -251,176 +141,72 @@ class SettingController extends Controller
             'statuses.*.is_active' => ['sometimes', 'boolean'],
         ]);
 
-        foreach ($validated['statuses'] as $status) {
-            Setting::updateOrCreate(
-                ['group' => 'order_process_status', 'key' => $status['key']],
-                [
-                    'label' => $status['label'],
-                    'color' => $status['color'] ?? '#6c757d',
-                    'sort_order' => $status['sort_order'] ?? 0,
-                    'is_active' => $status['is_active'] ?? true,
-                ]
-            );
-        }
-
-        return response()->json(['message' => 'تم حفظ حالات الطلب بنجاح']);
+        return $this->bulkUpdate('order_process_status', $request->input('statuses', []), 'تم حفظ حالات الطلب بنجاح');
     }
 
     public function deletePriorityLevel(int $id)
     {
-        $setting = Setting::where('group', 'priority_level')->find($id);
-        if (!$setting) {
-            return response()->json(['message' => 'العنصر غير موجود'], 404);
-        }
-        $setting->delete();
-        return response()->json(['message' => 'تم الحذف بنجاح']);
+        return $this->deleteSetting('priority_level', $id);
     }
 
     public function deletePassportStatus(int $id)
     {
-        $setting = Setting::where('group', 'passport_status')->find($id);
-        if (!$setting) {
-            return response()->json(['message' => 'العنصر غير موجود'], 404);
-        }
-        $setting->delete();
-        return response()->json(['message' => 'تم الحذف بنجاح']);
+        return $this->deleteSetting('passport_status', $id);
     }
 
     public function deleteTransferStatus(int $id)
     {
-        $setting = Setting::where('group', 'transfer_status')->find($id);
-        if (!$setting) {
-            return response()->json(['message' => 'العنصر غير موجود'], 404);
-        }
-        $setting->delete();
-        return response()->json(['message' => 'تم الحذف بنجاح']);
+        return $this->deleteSetting('transfer_status', $id);
     }
 
     public function deletePaymentMethod(int $id)
     {
-        $setting = Setting::where('group', 'payment_method')->find($id);
-        if (!$setting) {
-            return response()->json(['message' => 'العنصر غير موجود'], 404);
-        }
-        $setting->delete();
-        return response()->json(['message' => 'تم الحذف بنجاح']);
+        return $this->deleteSetting('payment_method', $id);
     }
 
     public function deleteBankName(int $id)
     {
-        $setting = Setting::where('group', 'bank_name')->find($id);
-        if (!$setting) {
-            return response()->json(['message' => 'العنصر غير موجود'], 404);
-        }
-        $setting->delete();
-        return response()->json(['message' => 'تم الحذف بنجاح']);
+        return $this->deleteSetting('bank_name', $id);
     }
 
     public function updateServiceTypes(Request $request)
     {
-        $types = $request->input('types', $request->input('statuses', []));
-
-        foreach ($types as $type) {
-            Setting::updateOrCreate(
-                ['group' => 'service_type', 'key' => $type['key'] ?? ''],
-                [
-                    'label' => $type['label'] ?? '',
-                    'color' => $type['color'] ?? '#6c757d',
-                    'sort_order' => $type['sort_order'] ?? 0,
-                    'is_active' => $type['is_active'] ?? true,
-                ]
-            );
-        }
-
-        return response()->json(['message' => 'تم حفظ أنواع الخدمات بنجاح']);
+        return $this->bulkUpdate('service_type', $request->input('types', $request->input('statuses', [])), 'تم حفظ أنواع الخدمات بنجاح');
     }
 
     public function updateAuthenticationStatuses(Request $request)
     {
-        $statuses = $request->input('statuses', []);
-
-        foreach ($statuses as $status) {
-            Setting::updateOrCreate(
-                ['group' => 'authentication_status', 'key' => $status['key'] ?? ''],
-                [
-                    'label' => $status['label'] ?? '',
-                    'color' => $status['color'] ?? '#6c757d',
-                    'sort_order' => $status['sort_order'] ?? 0,
-                    'is_active' => $status['is_active'] ?? true,
-                ]
-            );
-        }
-
-        return response()->json(['message' => 'تم حفظ حالات التوثيق بنجاح']);
+        return $this->bulkUpdate('authentication_status', $request->input('statuses', []), 'تم حفظ حالات التوثيق بنجاح');
     }
 
     public function updateAuthorizationStatuses(Request $request)
     {
-        $statuses = $request->input('statuses', []);
-
-        foreach ($statuses as $status) {
-            Setting::updateOrCreate(
-                ['group' => 'authorization_status', 'key' => $status['key'] ?? ''],
-                [
-                    'label' => $status['label'] ?? '',
-                    'color' => $status['color'] ?? '#6c757d',
-                    'sort_order' => $status['sort_order'] ?? 0,
-                    'is_active' => $status['is_active'] ?? true,
-                ]
-            );
-        }
-
-        return response()->json(['message' => 'تم حفظ حالات التفويض بنجاح']);
+        return $this->bulkUpdate('authorization_status', $request->input('statuses', []), 'تم حفظ حالات التفويض بنجاح');
     }
 
     public function deleteOrderStatus(int $id)
     {
-        $setting = Setting::where('group', 'order_status')->find($id);
-        if (!$setting) {
-            return response()->json(['message' => 'العنصر غير موجود'], 404);
-        }
-        $setting->delete();
-        return response()->json(['message' => 'تم الحذف بنجاح']);
+        return $this->deleteSetting('order_status', $id);
     }
 
     public function deleteOrderProcessStatus(int $id)
     {
-        $setting = Setting::where('group', 'order_process_status')->find($id);
-        if (!$setting) {
-            return response()->json(['message' => 'العنصر غير موجود'], 404);
-        }
-        $setting->delete();
-        return response()->json(['message' => 'تم الحذف بنجاح']);
+        return $this->deleteSetting('order_process_status', $id);
     }
 
     public function deleteServiceType(int $id)
     {
-        $setting = Setting::where('group', 'service_type')->find($id);
-        if (!$setting) {
-            return response()->json(['message' => 'العنصر غير موجود'], 404);
-        }
-        $setting->delete();
-        return response()->json(['message' => 'تم الحذف بنجاح']);
+        return $this->deleteSetting('service_type', $id);
     }
 
     public function deleteAuthenticationStatus(int $id)
     {
-        $setting = Setting::where('group', 'authentication_status')->find($id);
-        if (!$setting) {
-            return response()->json(['message' => 'العنصر غير موجود'], 404);
-        }
-        $setting->delete();
-        return response()->json(['message' => 'تم الحذف بنجاح']);
+        return $this->deleteSetting('authentication_status', $id);
     }
 
     public function deleteAuthorizationStatus(int $id)
     {
-        $setting = Setting::where('group', 'authorization_status')->find($id);
-        if (!$setting) {
-            return response()->json(['message' => 'العنصر غير موجود'], 404);
-        }
-        $setting->delete();
-        return response()->json(['message' => 'تم الحذف بنجاح']);
+        return $this->deleteSetting('authorization_status', $id);
     }
 
     public function getNationalities()
@@ -499,12 +285,7 @@ class SettingController extends Controller
 
     public function deleteArrivalDestination(int $id)
     {
-        $setting = Setting::where('group', 'arrival_destination')->find($id);
-        if (!$setting) {
-            return response()->json(['message' => 'العنصر غير موجود'], 404);
-        }
-        $setting->delete();
-        return response()->json(['message' => 'تم الحذف بنجاح']);
+        return $this->deleteSetting('arrival_destination', $id);
     }
 
     public function updateNationalities(Request $request)
@@ -547,21 +328,11 @@ class SettingController extends Controller
 
     public function deleteNationality(int $id)
     {
-        $setting = Setting::where('group', 'nationality')->find($id);
-        if (!$setting) {
-            return response()->json(['message' => 'العنصر غير موجود'], 404);
-        }
-        $setting->delete();
-        return response()->json(['message' => 'تم الحذف بنجاح']);
+        return $this->deleteSetting('nationality', $id);
     }
 
     public function deleteProfession(int $id)
     {
-        $setting = Setting::where('group', 'profession')->find($id);
-        if (!$setting) {
-            return response()->json(['message' => 'العنصر غير موجود'], 404);
-        }
-        $setting->delete();
-        return response()->json(['message' => 'تم الحذف بنجاح']);
+        return $this->deleteSetting('profession', $id);
     }
 }

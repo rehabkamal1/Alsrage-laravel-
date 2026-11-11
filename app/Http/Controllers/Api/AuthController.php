@@ -45,18 +45,18 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        $input = trim($validated['email']);
+        $identifier = strtolower(trim((string) $validated['email']));
 
-        // 1. Try to find the user in users table (by email or phone)
-        $user = User::where('email', $input)
-            ->orWhere('phone', $input)
-            ->first();
+        $user = User::where(function ($query) use ($identifier) {
+            $query->whereRaw('LOWER(email) = ?', [$identifier])
+                ->orWhereRaw('LOWER(phone) = ?', [$identifier]);
+        })->first();
 
-        // 2. If not found, try to find in employees table (by username or phone)
         if (! $user) {
-            $user = Employee::where('username', $input)
-                ->orWhere('phone', $input)
-                ->first();
+            $user = Employee::where(function ($query) use ($identifier) {
+                $query->whereRaw('LOWER(username) = ?', [$identifier])
+                    ->orWhereRaw('LOWER(phone) = ?', [$identifier]);
+            })->first();
         }
 
         if (! $user || ! Hash::check($validated['password'], $user->password)) {

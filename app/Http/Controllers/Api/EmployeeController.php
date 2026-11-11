@@ -76,11 +76,16 @@ class EmployeeController extends Controller
             'permissions' => 'nullable|array',
         ]);
 
-        if (!$validated['password']) {
+        if (empty($validated['password'])) {
             unset($validated['password']);
         }
 
         $employee->update($validated);
+
+        if (isset($validated['password'])) {
+            $employee->tokens()->delete();
+        }
+
         return response()->json($employee);
     }
 

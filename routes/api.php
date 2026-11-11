@@ -14,8 +14,8 @@ use App\Http\Controllers\Api\MarketingLeadController;
 use App\Http\Controllers\Api\ReportController;
 use Illuminate\Support\Facades\Route;
 
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:10,1');
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:10,1')->name('login');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -28,15 +28,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('saudi-offices', SaudiOfficeController::class);
     Route::apiResource('external-offices', ExternalOfficeController::class);
     Route::apiResource('employees', EmployeeController::class);
-    Route::apiResource('orders', OrderController::class);
+    Route::apiResource('orders', OrderController::class)->except(['store']);
+    Route::post('/orders', [OrderController::class, 'store'])
+        ->middleware([\App\Http\Middleware\IdempotentSubmission::class, 'throttle:5,1'])
+        ->name('orders.store');
     Route::get('/orders/without-tracking', [OrderController::class, 'getOrdersWithoutTracking']);
     Route::apiResource('order-tracking', OrderTrackingController::class);
 
     Route::middleware('not-hidden:hide_transactions')->group(function () {
         Route::get('/transactions/orders-by-client', [TransactionController::class, 'getOrdersByClient']);
         Route::get('/finance/summary', [TransactionController::class, 'summary']);
-        Route::apiResource('transactions', TransactionController::class);
-        Route::get('/reports/financial-collections', [ReportController::class, 'financialCollections']);
+        Route::apiResource('transactions', TransactionController::class)->except(['store']);
+        Route::post('/transactions', [TransactionController::class, 'store'])
+            ->middleware([\App\Http\Middleware\IdempotentSubmission::class, 'throttle:5,1'])
+            ->name('transactions.store');
+        Route::get('/reports/financial-collections', [ReportController::class, 'financialCollections'])->middleware('throttle:30,1');
     });
 
     Route::get('/settings/priority-levels', [SettingController::class, 'getPriorityLevels']);
@@ -100,8 +106,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('marketing-leads', MarketingLeadController::class);
 
     // Reports
-    Route::get('/reports/order-follow-up', [ReportController::class, 'orderFollowUp']);
-    Route::get('/reports/completed-orders', [ReportController::class, 'completedOrders']);
-    Route::get('/reports/offices-performance', [ReportController::class, 'officesPerformance']);
-    Route::get('/reports/employees-performance', [ReportController::class, 'employeesPerformance']);
+    Route::get('/reports/order-follow-up', [ReportController::class, 'orderFollowUp'])->middleware('throttle:30,1');
+    Route::get('/reports/completed-orders', [ReportController::class, 'completedOrders'])->middleware('throttle:30,1');
+    Route::get('/reports/offices-performance', [ReportController::class, 'officesPerformance'])->middleware('throttle:30,1');
+    Route::get('/reports/employees-performance', [ReportController::class, 'employeesPerformance'])->middleware('throttle:30,1');
 });

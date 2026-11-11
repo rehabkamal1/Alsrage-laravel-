@@ -11,6 +11,9 @@ class SaudiOfficeController extends Controller
 {
     public function index(Request $request)
     {
+        $validated = $request->validate([
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+        ]);
         $query = SaudiOffice::query();
 
         // Generic search
@@ -33,10 +36,10 @@ class SaudiOfficeController extends Controller
             ->when($request->filled('to_date'), fn($q) => $q->whereDate('created_at', '<=', $request->date('to_date')));
 
         if ($request->boolean('all')) {
-            return SaudiOfficeResource::collection($query->latest()->get());
+            return SaudiOfficeResource::collection($query->latest()->limit(100)->get());
         }
 
-        $perPage = $request->integer('per_page', 500);
+        $perPage = (int) ($validated['per_page'] ?? 15);
 
         return SaudiOfficeResource::collection($query->latest()->paginate($perPage));
     }

@@ -12,6 +12,9 @@ class ExternalOfficeController extends Controller
 {
     public function index(Request $request)
     {
+        $validated = $request->validate([
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+        ]);
         $query = ExternalOffice::query();
 
         // Generic search
@@ -50,10 +53,10 @@ class ExternalOfficeController extends Controller
         $query->orderBy($sortField, $sortDirection);
 
         if ($request->boolean('all')) {
-            return ExternalOfficeResource::collection($query->get());
+            return ExternalOfficeResource::collection($query->limit(100)->get());
         }
 
-        $perPage = $request->integer('per_page', 15);
+        $perPage = (int) ($validated['per_page'] ?? 15);
 
         return ExternalOfficeResource::collection($query->paginate($perPage));
     }

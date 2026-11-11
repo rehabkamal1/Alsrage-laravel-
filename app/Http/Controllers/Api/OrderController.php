@@ -19,6 +19,9 @@ class OrderController extends Controller
 {
     public function index(Request $request)
     {
+        $validated = $request->validate([
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+        ]);
         $hideDelegateNumbers = PermissionAccess::isHiddenFor($request->user(), PermissionAccess::HIDE_DELEGATE_NUMBERS);
         $relations = ['client', 'saudiOffice', 'externalOffice', 'employee', 'tracking', 'attachments'];
         if (! PermissionAccess::isHiddenFor($request->user(), PermissionAccess::HIDE_TRANSACTIONS)) {
@@ -94,7 +97,7 @@ class OrderController extends Controller
                     : 'id',
                 $request->input('sort_dir') === 'asc' ? 'asc' : 'desc'
             )
-            ->paginate((int) $request->integer('per_page', 15))
+            ->paginate((int) ($validated['per_page'] ?? 15))
             ->withQueryString();
 
         return OrderResource::collection($orders);
