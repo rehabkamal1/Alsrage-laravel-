@@ -73,24 +73,30 @@ class ReportController extends Controller
             });
         }
 
-        $statusSettings = Cache::remember('report_order_status_settings', 3600, function () {
-            return \App\Models\Setting::where('group', 'order_status')->get();
+        $statusSettings = Cache::remember('report_order_status_settings:v2', 3600, function () {
+            return \App\Models\Setting::where('group', 'order_status')
+                ->get(['key', 'label', 'target_days'])
+                ->map(fn ($item) => $item->only(['key', 'label', 'target_days']))
+                ->all();
         });
-        $statusSettingsMap = $statusSettings->mapWithKeys(function ($item) {
-            return [$item->key => (int) ($item->target_days ?: 60)];
+        $statusSettingsMap = collect($statusSettings)->mapWithKeys(function ($item) {
+            return [$item['key'] => (int) ($item['target_days'] ?: 60)];
         })->toArray();
-        $statusLabelMap = $statusSettings->mapWithKeys(function ($item) {
-            return [$item->key => $item->label];
+        $statusLabelMap = collect($statusSettings)->mapWithKeys(function ($item) {
+            return [$item['key'] => $item['label']];
         })->toArray();
 
-        $authSettings = Cache::remember('report_auth_status_settings', 3600, function () {
-            return \App\Models\Setting::where('group', 'authentication_status')->get();
+        $authSettings = Cache::remember('report_auth_status_settings:v2', 3600, function () {
+            return \App\Models\Setting::where('group', 'authentication_status')
+                ->get(['key', 'label', 'color'])
+                ->map(fn ($item) => $item->only(['key', 'label', 'color']))
+                ->all();
         });
-        $authLabelMap = $authSettings->mapWithKeys(function ($item) {
-            return [$item->key => $item->label];
+        $authLabelMap = collect($authSettings)->mapWithKeys(function ($item) {
+            return [$item['key'] => $item['label']];
         })->toArray();
-        $authColorMap = $authSettings->mapWithKeys(function ($item) {
-            return [$item->key => $item->color ?: '#0284c7', $item->label => $item->color ?: '#0284c7'];
+        $authColorMap = collect($authSettings)->mapWithKeys(function ($item) {
+            return [$item['key'] => $item['color'] ?: '#0284c7', $item['label'] => $item['color'] ?: '#0284c7'];
         })->toArray();
 
         $statsQuery = clone $baseQuery;
@@ -160,10 +166,10 @@ class ReportController extends Controller
         $authStatusesList = [];
         foreach ($authSettings as $ast) {
             $authStatusesList[] = [
-                'key' => $ast->key,
-                'label' => $ast->label,
-                'color' => $ast->color ?: '#0284c7',
-                'count' => $authCountsMap[$ast->label] ?? ($authCountsMap[$ast->key] ?? 0),
+                'key' => $ast['key'],
+                'label' => $ast['label'],
+                'color' => $ast['color'] ?: '#0284c7',
+                'count' => $authCountsMap[$ast['label']] ?? ($authCountsMap[$ast['key']] ?? 0),
             ];
         }
 

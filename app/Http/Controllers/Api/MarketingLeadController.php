@@ -124,6 +124,56 @@ class MarketingLeadController extends Controller
         return response()->json(['data' => $clients]);
     }
 
+    public function getStatuses()
+    {
+        $labels = [
+            'new' => 'جديد',
+            'contacted' => 'تم التواصل',
+            'interested' => 'مهتم',
+            'not_interested' => 'غير مهتم',
+            'converted' => 'تم التحويل',
+        ];
+        $colors = [
+            'new' => '#6366f1',
+            'contacted' => '#06b6d4',
+            'interested' => '#10b981',
+            'not_interested' => '#ef4444',
+            'converted' => '#8b5cf6',
+        ];
+        $statusKeys = MarketingLead::query()
+            ->whereNotNull('status')
+            ->distinct()
+            ->orderBy('status')
+            ->pluck('status')
+            ->all();
+        $statusKeys = array_values(array_unique(array_merge(['new'], $statusKeys)));
+
+        $statuses = array_map(fn ($key) => [
+            'key' => $key,
+            'label' => $labels[$key] ?? $key,
+            'color' => $colors[$key] ?? '#6c757d',
+        ], $statusKeys);
+
+        return response()->json(['data' => $statuses]);
+    }
+
+    public function getPriorityLevels()
+    {
+        $priorityLevels = Setting::query()
+            ->where('group', 'priority_level')
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->get(['key', 'label', 'color']);
+
+        if ($priorityLevels->isEmpty()) {
+            $priorityLevels = collect([
+                ['key' => 'medium', 'label' => 'متوسط', 'color' => '#f59e0b'],
+            ]);
+        }
+
+        return response()->json(['data' => $priorityLevels]);
+    }
+
 
     public function storeSaudiOffice(Request $request)
     {

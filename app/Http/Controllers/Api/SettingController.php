@@ -37,12 +37,12 @@ class SettingController extends Controller
         }
 
         $setting->delete();
-        Cache::forget("settings:{$group}");
+        Cache::forget("settings:v2:{$group}");
 
         if ($group === 'order_status') {
-            Cache::forget('report_order_status_settings');
+            Cache::forget('report_order_status_settings:v2');
         } elseif ($group === 'authentication_status') {
-            Cache::forget('report_auth_status_settings');
+            Cache::forget('report_auth_status_settings:v2');
         }
 
         return response()->json(['message' => 'تم الحذف بنجاح']);

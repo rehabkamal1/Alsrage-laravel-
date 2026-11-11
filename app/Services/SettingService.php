@@ -12,12 +12,15 @@ class SettingService
 
     public function getGroup(string $group, array $select = ['id', 'key', 'label', 'color', 'sort_order', 'is_active']): Collection
     {
-        return Cache::remember("settings:{$group}", self::TTL, function () use ($group, $select) {
+        $settings = Cache::remember("settings:v2:{$group}", self::TTL, function () use ($group, $select) {
             return Setting::query()
                 ->where('group', $group)
                 ->orderBy('sort_order')
-                ->get($select);
+                ->get($select)
+                ->toArray();
         });
+
+        return collect($settings);
     }
 
     public function ensureAuthenticationDefaults(): Collection
@@ -48,7 +51,7 @@ class SettingService
             );
         }
 
-        Cache::forget('settings:authentication_status');
+        Cache::forget('settings:v2:authentication_status');
 
         return $this->getGroup('authentication_status');
     }
@@ -77,12 +80,12 @@ class SettingService
             );
         }
 
-        Cache::forget("settings:{$group}");
+        Cache::forget("settings:v2:{$group}");
 
         if ($group === 'order_status') {
-            Cache::forget('report_order_status_settings');
+            Cache::forget('report_order_status_settings:v2');
         } elseif ($group === 'authentication_status') {
-            Cache::forget('report_auth_status_settings');
+            Cache::forget('report_auth_status_settings:v2');
         }
     }
 }
