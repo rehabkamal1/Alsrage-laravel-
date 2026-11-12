@@ -9,6 +9,7 @@ class ExternalOffice extends Model
 {
     protected $fillable = [
         'name',
+        'license_number',
         'country',
         'contacts',
         'notes',

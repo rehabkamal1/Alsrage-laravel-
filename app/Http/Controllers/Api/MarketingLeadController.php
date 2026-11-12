@@ -11,6 +11,7 @@ use App\Models\ExternalOffice;
 use App\Models\MarketingLead;
 use App\Models\SaudiOffice;
 use App\Models\Setting;
+use App\Rules\UniqueOfficeLicense;
 use Illuminate\Http\Request;
 
 class MarketingLeadController extends Controller
@@ -177,15 +178,24 @@ class MarketingLeadController extends Controller
 
     public function storeSaudiOffice(Request $request)
     {
+        $request->merge([
+            'license_number' => trim((string) $request->input('license_number', '')),
+        ]);
         $request->validate([
             'name' => 'required|string|max:255',
+            'license_number' => ['required', 'string', 'max:255', new UniqueOfficeLicense()],
             'mobile' => 'required|string|max:20',
             'responsible_employee' => 'required|string|max:255',
             'destination' => 'required|string|max:255',
+        ], [
+            'license_number.required' => 'رقم الترخيص مطلوب.',
+            'license_number.string' => 'رقم الترخيص يجب أن يكون نصًا صحيحًا.',
+            'license_number.max' => 'رقم الترخيص يجب ألا يتجاوز 255 حرفًا.',
         ]);
 
         $office = SaudiOffice::create([
             'name' => $request->name,
+            'license_number' => $request->license_number,
             'mobile' => $request->mobile,
             'responsible_employee' => $request->responsible_employee,
             'destination' => $request->destination,
@@ -201,14 +211,23 @@ class MarketingLeadController extends Controller
 
     public function storeExternalOfficeNew(Request $request)
     {
+        $request->merge([
+            'license_number' => trim((string) $request->input('license_number', '')),
+        ]);
         $request->validate([
             'name' => 'required|string|max:255',
+            'license_number' => ['required', 'string', 'max:255', new UniqueOfficeLicense()],
             'country' => 'required|string|max:255',
             'phone' => 'required|string|max:20',
+        ], [
+            'license_number.required' => 'رقم الترخيص مطلوب.',
+            'license_number.string' => 'رقم الترخيص يجب أن يكون نصًا صحيحًا.',
+            'license_number.max' => 'رقم الترخيص يجب ألا يتجاوز 255 حرفًا.',
         ]);
 
         $office = ExternalOffice::create([
             'name' => $request->name,
+            'license_number' => $request->license_number,
             'country' => $request->country,
             'contacts' => [
                 ['name' => 'الرئيسي', 'phone' => $request->phone]

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\SaudiOfficeResource;
 use App\Models\SaudiOffice;
+use App\Rules\UniqueOfficeLicense;
 use Illuminate\Http\Request;
 
 class SaudiOfficeController extends Controller
@@ -22,6 +23,7 @@ class SaudiOfficeController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('destination', 'like', "%{$search}%")
+                    ->orWhere('license_number', 'like', "%{$search}%")
                     ->orWhere('responsible_employee', 'like', "%{$search}%")
                     ->orWhere('city', 'like', "%{$search}%");
             });
@@ -46,8 +48,12 @@ class SaudiOfficeController extends Controller
 
     public function store(Request $request)
     {
+        $request->merge([
+            'license_number' => trim((string) $request->input('license_number', '')),
+        ]);
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'license_number' => ['required', 'string', 'max:255', new UniqueOfficeLicense()],
             'destination' => 'nullable|string|max:255',
             'city' => 'nullable|string|max:255',
             'responsible_employee' => 'nullable|string|max:255',
@@ -59,6 +65,10 @@ class SaudiOfficeController extends Controller
             'musaned_price' => 'nullable|numeric',
             'whatsapp_link' => 'nullable|string|url|max:255',
             'is_supplier' => 'boolean',
+        ], [
+            'license_number.required' => 'رقم الترخيص مطلوب.',
+            'license_number.string' => 'رقم الترخيص يجب أن يكون نصًا صحيحًا.',
+            'license_number.max' => 'رقم الترخيص يجب ألا يتجاوز 255 حرفًا.',
         ]);
 
         $office = SaudiOffice::create($validated);
@@ -68,8 +78,12 @@ class SaudiOfficeController extends Controller
 
     public function update(Request $request, SaudiOffice $saudiOffice)
     {
+        $request->merge([
+            'license_number' => trim((string) $request->input('license_number', '')),
+        ]);
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
+            'license_number' => ['required', 'string', 'max:255', new UniqueOfficeLicense('saudi_offices', $saudiOffice->id)],
             'destination' => 'nullable|string|max:255',
             'city' => 'nullable|string|max:255',
             'responsible_employee' => 'nullable|string|max:255',
@@ -81,6 +95,10 @@ class SaudiOfficeController extends Controller
             'musaned_price' => 'nullable|numeric',
             'whatsapp_link' => 'nullable|string|url|max:255',
             'is_supplier' => 'boolean',
+        ], [
+            'license_number.required' => 'رقم الترخيص مطلوب.',
+            'license_number.string' => 'رقم الترخيص يجب أن يكون نصًا صحيحًا.',
+            'license_number.max' => 'رقم الترخيص يجب ألا يتجاوز 255 حرفًا.',
         ]);
 
         $saudiOffice->update($validated);

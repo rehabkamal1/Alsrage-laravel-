@@ -12,6 +12,7 @@ class ExternalOfficeResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
+            'license_number' => $this->license_number,
             'country' => $this->country,
             'contacts' => $this->contacts,
             'phone' => $this->phone,

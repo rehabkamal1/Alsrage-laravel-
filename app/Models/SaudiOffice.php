@@ -9,6 +9,7 @@ class SaudiOffice extends Model
 {
     protected $fillable = [
         'name',
+        'license_number',
         'is_supplier',
         'destination',
         'city',

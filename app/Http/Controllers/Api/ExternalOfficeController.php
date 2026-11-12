@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\ExternalOfficeResource;
 use App\Models\ExternalOffice;
 use App\Models\Setting;
+use App\Rules\UniqueOfficeLicense;
 use Illuminate\Http\Request;
 
 class ExternalOfficeController extends Controller
@@ -23,6 +24,7 @@ class ExternalOfficeController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('country', 'like', "%{$search}%")
+                    ->orWhere('license_number', 'like', "%{$search}%")
                     ->orWhere('notes', 'like', "%{$search}%");
             });
         }
@@ -64,8 +66,12 @@ class ExternalOfficeController extends Controller
 
     public function store(Request $request)
     {
+        $request->merge([
+            'license_number' => trim((string) $request->input('license_number', '')),
+        ]);
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'license_number' => ['required', 'string', 'max:255', new UniqueOfficeLicense()],
             'country' => 'nullable|string|max:255',
             'contacts' => 'nullable|array',
             'contacts.*.name' => 'nullable|string|max:255',
@@ -74,6 +80,10 @@ class ExternalOfficeController extends Controller
             'phone' => 'nullable|string|max:20',
             'notes' => 'nullable|string',
             'whatsapp_link' => 'nullable|string|url|max:255',
+        ], [
+            'license_number.required' => 'رقم الترخيص مطلوب.',
+            'license_number.string' => 'رقم الترخيص يجب أن يكون نصًا صحيحًا.',
+            'license_number.max' => 'رقم الترخيص يجب ألا يتجاوز 255 حرفًا.',
         ]);
 
         $office = ExternalOffice::create($validated);
@@ -83,8 +93,12 @@ class ExternalOfficeController extends Controller
 
     public function update(Request $request, ExternalOffice $externalOffice)
     {
+        $request->merge([
+            'license_number' => trim((string) $request->input('license_number', '')),
+        ]);
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
+            'license_number' => ['required', 'string', 'max:255', new UniqueOfficeLicense('external_offices', $externalOffice->id)],
             'country' => 'nullable|string|max:255',
             'contacts' => 'nullable|array',
             'contacts.*.name' => 'nullable|string|max:255',
@@ -93,6 +107,10 @@ class ExternalOfficeController extends Controller
             'phone' => 'sometimes|required|string|max:20',
             'notes' => 'nullable|string',
             'whatsapp_link' => 'nullable|string|url|max:255',
+        ], [
+            'license_number.required' => 'رقم الترخيص مطلوب.',
+            'license_number.string' => 'رقم الترخيص يجب أن يكون نصًا صحيحًا.',
+            'license_number.max' => 'رقم الترخيص يجب ألا يتجاوز 255 حرفًا.',
         ]);
 
         $externalOffice->update($validated);
