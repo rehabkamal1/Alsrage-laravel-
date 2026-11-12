@@ -73,12 +73,16 @@ class ReportController extends Controller
             });
         }
 
-        $statusSettings = Cache::remember('report_order_status_settings:v2', 3600, function () {
-            return \App\Models\Setting::where('group', 'order_status')
+        $statusCacheKey = 'report_order_status_settings:v2';
+        $statusSettings = Cache::get($statusCacheKey);
+        if (!is_array($statusSettings)) {
+            Cache::forget($statusCacheKey);
+            $statusSettings = \App\Models\Setting::where('group', 'order_status')
                 ->get(['key', 'label', 'target_days'])
                 ->map(fn ($item) => $item->only(['key', 'label', 'target_days']))
                 ->all();
-        });
+            Cache::put($statusCacheKey, $statusSettings, 3600);
+        }
         $statusSettingsMap = collect($statusSettings)->mapWithKeys(function ($item) {
             return [$item['key'] => (int) ($item['target_days'] ?: 60)];
         })->toArray();
@@ -86,12 +90,16 @@ class ReportController extends Controller
             return [$item['key'] => $item['label']];
         })->toArray();
 
-        $authSettings = Cache::remember('report_auth_status_settings:v2', 3600, function () {
-            return \App\Models\Setting::where('group', 'authentication_status')
+        $authCacheKey = 'report_auth_status_settings:v2';
+        $authSettings = Cache::get($authCacheKey);
+        if (!is_array($authSettings)) {
+            Cache::forget($authCacheKey);
+            $authSettings = \App\Models\Setting::where('group', 'authentication_status')
                 ->get(['key', 'label', 'color'])
                 ->map(fn ($item) => $item->only(['key', 'label', 'color']))
                 ->all();
-        });
+            Cache::put($authCacheKey, $authSettings, 3600);
+        }
         $authLabelMap = collect($authSettings)->mapWithKeys(function ($item) {
             return [$item['key'] => $item['label']];
         })->toArray();

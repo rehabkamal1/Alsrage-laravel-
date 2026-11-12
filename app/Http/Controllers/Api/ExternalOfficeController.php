@@ -28,10 +28,11 @@ class ExternalOfficeController extends Controller
         }
 
         if ($request->filled('nationality')) {
-            $query->whereIn(
-                'country',
-                Setting::getNationalityCountryValues($request->string('nationality')->toString())
-            );
+            $nationalityValues = Setting::getNationalityCountryValues($request->string('nationality')->toString());
+
+            if (! empty($nationalityValues)) {
+                $query->whereIn('country', $nationalityValues);
+            }
         }
 
         // Date filters

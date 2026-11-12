@@ -12,13 +12,28 @@ class SettingService
 
     public function getGroup(string $group, array $select = ['id', 'key', 'label', 'color', 'sort_order', 'is_active']): Collection
     {
-        $settings = Cache::remember("settings:v2:{$group}", self::TTL, function () use ($group, $select) {
-            return Setting::query()
-                ->where('group', $group)
-                ->orderBy('sort_order')
-                ->get($select)
-                ->toArray();
-        });
+        $cacheKey = "settings:v2:{$group}";
+        $cached = Cache::get($cacheKey);
+
+        if ($cached instanceof Collection) {
+            return $cached;
+        }
+
+        if (is_array($cached)) {
+            return collect($cached);
+        }
+
+        if ($cached !== null) {
+            Cache::forget($cacheKey);
+        }
+
+        $settings = Setting::query()
+            ->where('group', $group)
+            ->orderBy('sort_order')
+            ->get($select)
+            ->toArray();
+
+        Cache::put($cacheKey, $settings, self::TTL);
 
         return collect($settings);
     }
