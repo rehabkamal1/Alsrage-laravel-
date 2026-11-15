@@ -73,33 +73,37 @@ class ReportController extends Controller
             });
         }
 
-        $statusCacheKey = 'report_order_status_settings:v2';
+        $statusCacheKey = 'report_order_status_settings:v3';
         $statusSettings = Cache::get($statusCacheKey);
         if (!is_array($statusSettings)) {
             Cache::forget($statusCacheKey);
             $statusSettings = \App\Models\Setting::where('group', 'order_status')
-                ->get(['key', 'label', 'target_days'])
-                ->map(fn ($item) => $item->only(['key', 'label', 'target_days']))
+                ->get(['key', 'label'])
+                ->map(fn ($item) => $item->only(['key', 'label']))
                 ->all();
             Cache::put($statusCacheKey, $statusSettings, 3600);
         }
-        $statusSettingsMap = collect($statusSettings)->mapWithKeys(function ($item) {
-            return [$item['key'] => (int) ($item['target_days'] ?: 60)];
-        })->toArray();
         $statusLabelMap = collect($statusSettings)->mapWithKeys(function ($item) {
             return [$item['key'] => $item['label']];
         })->toArray();
 
-        $authCacheKey = 'report_auth_status_settings:v2';
+        $authCacheKey = 'report_auth_status_settings:v3';
         $authSettings = Cache::get($authCacheKey);
         if (!is_array($authSettings)) {
             Cache::forget($authCacheKey);
             $authSettings = \App\Models\Setting::where('group', 'authentication_status')
-                ->get(['key', 'label', 'color'])
-                ->map(fn ($item) => $item->only(['key', 'label', 'color']))
+                ->get(['key', 'label', 'color', 'target_days'])
+                ->map(fn ($item) => $item->only(['key', 'label', 'color', 'target_days']))
                 ->all();
             Cache::put($authCacheKey, $authSettings, 3600);
         }
+        $authTargetDaysMap = collect($authSettings)->flatMap(function ($item) {
+            $targetDays = (int) ($item['target_days'] ?? 60);
+            return [
+                $item['key'] => $targetDays,
+                $item['label'] => $targetDays,
+            ];
+        })->toArray();
         $authLabelMap = collect($authSettings)->mapWithKeys(function ($item) {
             return [$item['key'] => $item['label']];
         })->toArray();
@@ -116,18 +120,18 @@ class ReportController extends Controller
 
         $orders = $baseQuery->paginate((int) $request->integer('per_page', 15))->withQueryString();
         $now = Carbon::now();
-        $processedOrders = $orders->getCollection()->map(function ($order) use ($statusSettingsMap, $statusLabelMap, $authLabelMap, $authColorMap, $now) {
+        $processedOrders = $orders->getCollection()->map(function ($order) use ($statusLabelMap, $authLabelMap, $authColorMap, $authTargetDaysMap, $now) {
             $startDate = $order->contract_date ? Carbon::parse($order->contract_date) : $order->created_at;
             $daysSinceStart = (int) $startDate->diffInDays($now);
-            $stageTargetDays = (int) ($statusSettingsMap[$order->status] ?? 60);
-            $delayDays = max(0, $daysSinceStart - $stageTargetDays);
-            $isLate = $delayDays > 0;
-            $isWithoutFollowup = ! $order->tracking || ! $order->tracking->last_action_date;
 
             $statusLabel = $statusLabelMap[$order->status] ?? $order->status;
             $rawAuth = $order->tracking ? $order->tracking->authentication_status : null;
             $authLabel = $rawAuth ? ($authLabelMap[$rawAuth] ?? $rawAuth) : null;
             $authColor = $rawAuth ? ($authColorMap[$rawAuth] ?? ($authColorMap[$authLabel] ?? '#0284c7')) : null;
+            $stageTargetDays = (int) ($authTargetDaysMap[$rawAuth] ?? 60);
+            $delayDays = max(0, $daysSinceStart - $stageTargetDays);
+            $isLate = $delayDays > 0;
+            $isWithoutFollowup = ! $order->tracking || ! $order->tracking->last_action_date;
 
             return [
                 'id' => $order->id,

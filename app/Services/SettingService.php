@@ -40,7 +40,8 @@ class SettingService
 
     public function ensureAuthenticationDefaults(): Collection
     {
-        $statuses = $this->getGroup('authentication_status');
+        $select = ['id', 'key', 'label', 'color', 'sort_order', 'target_days', 'is_active'];
+        $statuses = $this->getGroup('authentication_status', $select);
 
         if ($statuses->isNotEmpty()) {
             return $statuses;
@@ -68,7 +69,7 @@ class SettingService
 
         Cache::forget('settings:v2:authentication_status');
 
-        return $this->getGroup('authentication_status');
+        return $this->getGroup('authentication_status', $select);
     }
 
     public function bulkUpsert(string $group, array $items, ?string $keyName = 'key'): void
@@ -81,7 +82,7 @@ class SettingService
                 'is_active' => $item['is_active'] ?? true,
             ];
 
-            if ($group === 'order_status' || $group === 'order_process_status') {
+            if ($group === 'authentication_status') {
                 $payload['target_days'] = $item['target_days'] ?? 60;
             }
 
@@ -98,9 +99,9 @@ class SettingService
         Cache::forget("settings:v2:{$group}");
 
         if ($group === 'order_status') {
-            Cache::forget('report_order_status_settings:v2');
+            Cache::forget('report_order_status_settings:v3');
         } elseif ($group === 'authentication_status') {
-            Cache::forget('report_auth_status_settings:v2');
+            Cache::forget('report_auth_status_settings:v3');
         }
     }
 }

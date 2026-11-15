@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use App\Models\Setting;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -16,15 +15,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        User::updateOrCreate(
-            ['email' => 'admin@alsrage.com'],
-            [
-                'name' => 'Admin Alsrage',
-                'password' => 'admin123',
-                'phone' => '0500000000',
-                'role' => 'admin',
-            ]
-        );
+        $this->call(AdminUserSeeder::class);
 
         $orderStatuses = [
             ['key' => 'pending', 'label' => 'قيد الانتظار', 'color' => '#ffc107', 'sort_order' => 1],

@@ -40,9 +40,9 @@ class SettingController extends Controller
         Cache::forget("settings:v2:{$group}");
 
         if ($group === 'order_status') {
-            Cache::forget('report_order_status_settings:v2');
+            Cache::forget('report_order_status_settings:v3');
         } elseif ($group === 'authentication_status') {
-            Cache::forget('report_auth_status_settings:v2');
+            Cache::forget('report_auth_status_settings:v3');
         }
 
         return response()->json(['message' => 'تم الحذف بنجاح']);
@@ -80,7 +80,7 @@ class SettingController extends Controller
 
     public function getOrderStatuses()
     {
-        return response()->json(['data' => $this->getGroupData('order_status', ['id', 'key', 'label', 'color', 'sort_order', 'target_days', 'is_active'])]);
+        return response()->json(['data' => $this->getGroupData('order_status')]);
     }
 
     public function getOrderProcessStatuses()
