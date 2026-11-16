@@ -104,8 +104,8 @@ class OrderTrackingController extends Controller
             });
         }
 
-        $sortField = $request->input('sort_field', 'id');
-        $sortDirection = $request->input('sort_direction', 'desc');
+        $sortField = $request->input('sort_field', 'created_at');
+        $sortDirection = $request->input('sort_direction', 'asc');
         $query->orderBy($sortField, $sortDirection);
 
         $tracking = $query

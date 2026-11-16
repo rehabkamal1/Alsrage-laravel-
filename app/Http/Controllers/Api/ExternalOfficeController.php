@@ -47,11 +47,11 @@ class ExternalOfficeController extends Controller
         }
 
         // Sorting
-        $sortField = $request->input('sort_field', 'id');
-        $sortDirection = $request->input('sort_direction', 'desc');
+        $sortField = $request->input('sort_field', 'created_at');
+        $sortDirection = $request->input('sort_direction', 'asc');
         $allowedSortFields = ['id', 'name', 'country', 'created_at'];
         if (!in_array($sortField, $allowedSortFields)) {
-            $sortField = 'id';
+            $sortField = 'created_at';
         }
         $query->orderBy($sortField, $sortDirection);
 

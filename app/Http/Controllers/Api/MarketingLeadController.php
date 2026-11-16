@@ -39,8 +39,8 @@ class MarketingLeadController extends Controller
             $query->whereDate('created_at', '<=', $request->to_date);
         }
 
-        $sortField = $request->input('sort_field', 'id');
-        $sortDirection = $request->input('sort_direction', 'desc');
+        $sortField = $request->input('sort_field', 'created_at');
+        $sortDirection = $request->input('sort_direction', 'asc');
         $query->orderBy($sortField, $sortDirection);
 
         $leads = $query->paginate((int) $request->input('per_page', 15))->withQueryString();

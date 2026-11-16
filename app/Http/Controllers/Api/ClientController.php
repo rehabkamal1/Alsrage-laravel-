@@ -58,7 +58,7 @@ class ClientController extends Controller
         $sortBy = in_array($request->input('sort_by'), $allowedSortBy, true)
             ? $request->input('sort_by')
             : 'created_at';
-        $sortDir = $request->input('sort_dir') === 'asc' ? 'asc' : 'desc';
+        $sortDir = $request->input('sort_dir') === 'desc' ? 'desc' : 'asc';
 
         $clients = $query
             ->orderBy($sortBy, $sortDir)

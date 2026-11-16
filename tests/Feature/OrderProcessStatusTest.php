@@ -58,6 +58,26 @@ class OrderProcessStatusTest extends TestCase
         ]);
     }
 
+    public function test_order_list_defaults_to_creation_time_instead_of_database_id(): void
+    {
+        $newerOrder = Order::create([
+            'visa_holder_name' => 'طلب أحدث',
+            'status' => 'pending',
+        ]);
+        $newerOrder->forceFill(['created_at' => '2025-01-01 10:00:00'])->saveQuietly();
+
+        $olderOrder = Order::create([
+            'visa_holder_name' => 'طلب أقدم',
+            'status' => 'pending',
+        ]);
+        $olderOrder->forceFill(['created_at' => '2024-01-01 10:00:00'])->saveQuietly();
+        Sanctum::actingAs($this->createEmployee());
+
+        $this->getJson('/api/orders')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $newerOrder->id);
+    }
+
     public function test_order_process_status_can_be_updated_and_filtered_and_must_be_active(): void
     {
         $activeStatus = Setting::create([

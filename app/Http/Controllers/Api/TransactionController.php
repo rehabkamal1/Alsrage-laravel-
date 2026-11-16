@@ -77,12 +77,12 @@ class TransactionController extends Controller
             $query->whereDate('transfer_date', '<=', $request->to_date);
         }
 
-        $sortField = $request->input('sort_field', 'id');
-        $sortDirection = $request->input('sort_direction', 'desc');
+        $sortField = $request->input('sort_field', 'created_at');
+        $sortDirection = $request->input('sort_direction', 'asc');
 
         $allowedSortFields = ['id', 'amount', 'transfer_date', 'created_at', 'type'];
         if (! in_array($sortField, $allowedSortFields)) {
-            $sortField = 'id';
+            $sortField = 'created_at';
         }
 
         $query->orderBy($sortField, $sortDirection);
@@ -218,7 +218,7 @@ class TransactionController extends Controller
 
         $orders = Order::where('client_id', $clientId)
             ->with(['client', 'saudiOffice', 'externalOffice'])
-            ->orderBy('id', 'desc')
+            ->orderBy('created_at', 'desc')
             ->get();
 
         return response()->json([

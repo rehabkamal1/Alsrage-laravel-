@@ -94,8 +94,8 @@ class OrderController extends Controller
             ->orderBy(
                 in_array($request->input('sort_by'), ['id', 'visa_holder_name', 'visa_holder_phone', 'visa_number', 'service_type', 'id_number', 'musaned_contract_number', 'status', 'order_status', 'total_price', 'musaned_paid', 'created_at', 'contract_date'], true)
                     ? $request->input('sort_by')
-                    : 'id',
-                $request->input('sort_dir') === 'asc' ? 'asc' : 'desc'
+                    : 'created_at',
+                $request->input('sort_dir') === 'desc' ? 'desc' : 'asc'
             )
             ->paginate((int) ($validated['per_page'] ?? 15))
             ->withQueryString();
@@ -322,7 +322,7 @@ class OrderController extends Controller
             $query->where('service_type', $request->service_type);
         }
 
-        $orders = $query->orderBy('id', 'desc')
+        $orders = $query->orderBy('created_at', 'asc')
             ->paginate($request->integer('per_page', 15))
             ->withQueryString();
 

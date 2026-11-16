@@ -429,7 +429,7 @@ class ReportController extends Controller
             }
 
             $ordersByOffice = $ordersQuery
-                ->orderBy('id')
+                ->orderBy('created_at')
                 ->get()
                 ->groupBy($officeColumn);
 
